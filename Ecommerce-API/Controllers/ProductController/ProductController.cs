@@ -22,15 +22,15 @@ namespace Ecommerce_API
             }
             return productDetails;
         }
-        [HttpPost("getproductspaging)]
-        public List<ProductDetailsDto> GetProductsPaging([FromBody] PagingRequestDto pagingRequest)
-        {
-            var products = _productService.GetProductsPaging(pagingRequest);
-            if (products == null || !products.Any())
-            {
-                return new List<ProductDetailsDto>();
-            }
-            return products;
-        }
+        //[HttpPost("getproductspaging)]
+        //public List<ProductDetailsDto> GetProductsPaging([FromBody] PagingRequestDto pagingRequest)
+        //{
+        //    var products = _productService.GetProductsPaging(pagingRequest);
+        //    if (products == null || !products.Any())
+        //    {
+        //        return new List<ProductDetailsDto>();
+        //    }
+        //    return products;
+        //}
     }
 }
