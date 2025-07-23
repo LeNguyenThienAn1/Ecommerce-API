@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EF
+namespace Entity
 {
-    internal interface IEcommerceMapper
+    internal class Review
     {
     }
 }
