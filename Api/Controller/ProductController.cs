@@ -22,5 +22,6 @@ namespace Api.Controllers
             var result = await _productService.GetProductAsync();
             return Ok(result);
         }
+
     }
 }
