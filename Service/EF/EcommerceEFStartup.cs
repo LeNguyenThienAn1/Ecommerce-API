@@ -1,12 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using EF;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Threading.Tasks;
 
-namespace EF
+namespace Camps.Calendar.EF
 {
-    internal class EcommerceEFStartup
+    public static class EcommerceEFStartup
     {
+        public static async Task InitializeDatabaseAsync(IServiceProvider serviceProvider)
+        {
+            using (var serviceScope = serviceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope())
+            {
+                var db = serviceScope.ServiceProvider.GetService<IEcommerceDbContext>();
+                await db.Database.MigrateAsync();
+            }
+        }
     }
 }

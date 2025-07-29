@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace EF
 {
-    internal class EcommerceTableNames
+    public static class EcommerceTableNames
     {
+        public static readonly string TablePrefix = "ECM_";
+        public static readonly string ProductTableName = "Product";
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EF.PostgreSQL
 {
-    internal class EcommerceMapper
+    public class IEcommerceMapper
     {
     }
 }

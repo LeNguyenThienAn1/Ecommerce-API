@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Builder;
+using System;
 
 namespace EF.Actions
 {
-    internal class AddAction
+    public class AddAction 
     {
+        public int Priority => 3000;
+        public void Excute(IApplicationBuilder applicationBuilder, IServiceProvider serviceProvider)
+        {
+
+        }
     }
 }

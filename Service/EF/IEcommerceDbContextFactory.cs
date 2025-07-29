@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace EF
 {
-    internal interface IEcommerceDbContextFactory
+    public interface IEcommerceDbContextFactory
     {
+        public IEcommerceDbContext Create();
     }
 }
