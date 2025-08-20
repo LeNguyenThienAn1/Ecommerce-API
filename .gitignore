@@ -1,0 +1,49 @@
+
+# Visual Studio
+
+.vs/
+
+*.user
+
+*.suo
+
+
+
+# Build results
+
+bin/
+
+obj/
+
+out/
+
+
+
+# Rider
+
+.idea/
+
+
+
+# Cache files
+
+*.vsidx
+
+
+
+# Logs
+
+*.log
+
+
+
+# Others
+
+*.dbmdl
+
+*.bak
+
+*.ldf
+
+*.mdf
+
