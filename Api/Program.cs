@@ -1,37 +1,32 @@
 ﻿using Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Application; // 👈 để gọi AddApplicationServices
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ Đăng ký DbContext với PostgreSQL
+// DbContext
 builder.Services.AddDbContext<EcommerceDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ✅ Add Controller
+// Đăng ký toàn bộ service trong Application
+builder.Services.AddApplicationServices();
+
+// Controllers
 builder.Services.AddControllers();
 
-// ✅ Add Swagger/OpenAPI
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ✅ Middleware cho Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ecommerce API V1");
-        c.RoutePrefix = string.Empty; // => mở Swagger ngay tại http://localhost:5000/
-    });
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
-// ✅ Map Controllers
 app.MapControllers();
-
 app.Run();
