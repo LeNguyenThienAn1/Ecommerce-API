@@ -63,5 +63,37 @@ namespace Infrastructure
         Popular = 3,
         Sale = 4,
     }
+    public enum Color
+    {
+        None = 0,
+        Blue = 1,
+        Green = 2,
+        Black = 3,
+        White = 4,
+        Yellow = 5,
+        Pink = 6,
+        Purple = 7,
+        Orange = 8,
+        Gray = 9,
+        Brown = 10,
+        Red = 11,
+    }
+    public enum Capacity
+    {
+        None = 0,
+        GB16 = 16,
+        GB32 = 32,
+        GB64 = 64,
+        GB128 = 128,
+        GB256 = 256,
+        GB512 = 512,
+        TB1 = 1024,
+        TB2 = 2048,
+    }
+    public enum ProductStatus
+    {
+        Available = 0,
+        Sold = 1
+    }
 }
 

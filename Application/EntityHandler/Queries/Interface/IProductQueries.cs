@@ -16,10 +16,10 @@ namespace Application.Interfaces.Queries
         Task<ProductEntity> GetProductByIdAsync(Guid id);
 
         // Cập nhật sản phẩm
-        Task<bool> UpdateProductAsync(ProductEntity productEntity);
+        Task<bool> UpdateProductAsync(ProductEntity entity);
 
         // Tạo mới sản phẩm
-        Task<bool> CreateProductAsync(ProductEntity entity);
+        Task<bool> CreateProductAsync(List<ProductEntity> productEntities);
 
         // Xóa sản phẩm
         Task<bool> DeleteProductAsync(Guid id);

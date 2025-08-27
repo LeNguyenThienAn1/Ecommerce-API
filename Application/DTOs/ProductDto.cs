@@ -28,11 +28,12 @@ namespace Application.DTOs
         public string Description { get; set; }
         public decimal Price { get; set; }
         public string ImageUrl { get; set; }
-        public int Stock { get; set; }
+        public int Stock { get; set; } = 1;
         public bool IsFeatured { get; set; }
         public ProductFeaturedType FeaturedType { get; set; }
         public int? SalePercent { get; set; }
         public Guid CategoryId { get; set; }
+        public ProductDetail Detail { get; set; }
     }
     public class ProductSearchDto
     {

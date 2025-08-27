@@ -91,31 +91,56 @@ namespace Application.Services
         /// </summary>
         public async Task<bool> CreateOrUpdateProductAsync(CreateOrUpdateProductDto dto)
         {
-            var productEntity = new ProductEntity
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                Price = dto.Price,
-                ImageUrl = dto.ImageUrl,
-                Stock = dto.Stock,
-                IsFeatured = dto.IsFeatured,
-                FeaturedType = dto.FeaturedType,
-                SalePercent = dto.SalePercent,
-                CategoryId = dto.CategoryId
-            };
+            var productEntity = new ProductEntity();
 
-            if (dto.Id == Guid.Empty) // create
+            if (dto.Id == Guid.Empty) // CREATE
             {
-                return await _productQueries.CreateProductAsync(productEntity);
+                var productEntitiesToAdd = new List<ProductEntity>();
+                productEntity = new ProductEntity
+                {
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Price = dto.Price,
+                    ImageUrl = dto.ImageUrl,
+                    IsFeatured = dto.IsFeatured,
+                    FeaturedType = dto.FeaturedType,
+                    SalePercent = dto.SalePercent,
+                    CategoryId = dto.CategoryId,
+                    CreateAt = DateTime.UtcNow,
+                    UpdateAt = DateTime.UtcNow,
+                    CreateBy = "admin",
+                    UpdateBy = "admin",
+                    Detail = dto.Detail
+                };
+                for (int index = 0; index < dto.Stock; index++)
+                {
+                    productEntitiesToAdd.Add(productEntity);
+                }    
+                
+
+                return await _productQueries.CreateProductAsync(productEntitiesToAdd);
             }
-            else // update
+            else // UPDATE
             {
                 var existing = await _productQueries.GetProductByIdAsync(dto.Id);
                 if (existing == null) return false;
 
-                productEntity.Id = dto.Id;
-                return await _productQueries.UpdateProductAsync(productEntity);
+                // update fields trực tiếp trên entity đã được track
+                existing.Name = dto.Name;
+                existing.Description = dto.Description;
+                existing.Price = dto.Price;
+                existing.ImageUrl = dto.ImageUrl;
+                existing.IsFeatured = dto.IsFeatured;
+                existing.FeaturedType = dto.FeaturedType;
+                existing.SalePercent = dto.SalePercent;
+                existing.CategoryId = dto.CategoryId;
+                existing.UpdateAt = DateTime.UtcNow;
+                existing.UpdateBy = "admin";
+                existing.Detail = dto.Detail;
+
+                return await _productQueries.UpdateProductAsync(existing);
             }
+
         }
 
         /// <summary>
@@ -136,7 +161,6 @@ namespace Application.Services
                 Description = entity.Description,
                 Price = entity.Price,
                 ImageUrl = entity.ImageUrl,
-                Stock = entity.Stock,
                 IsFeatured = entity.IsFeatured,
                 FeaturedType = entity.FeaturedType,
                 SalePercent = entity.SalePercent,

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Text.Json;
 
 namespace Infrastructure
 {
@@ -19,7 +20,6 @@ namespace Infrastructure
         {
             base.OnModelCreating(modelBuilder);
 
-            // Product - Category (1-n)
             modelBuilder.Entity<ProductEntity>(entity =>
             {
                 entity.ToTable("Products");
@@ -32,9 +32,20 @@ namespace Infrastructure
                       .WithMany(c => c.Products)
                       .HasForeignKey(p => p.CategoryId)
                       .OnDelete(DeleteBehavior.Cascade);
-            });
 
-            // Category
+                // 👇 Map ProductDetail thành JSON
+                entity.Property(p => p.Detail)
+      .HasColumnType("jsonb")
+      .HasConversion(
+          v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
+          v => JsonSerializer.Deserialize<ProductDetail>(v, (JsonSerializerOptions)null)
+      )
+      .HasDefaultValueSql("'{}'::jsonb");
+
+
+            }); 
+
+                // Category
             modelBuilder.Entity<CategoryEntity>(entity =>
             {
                 entity.ToTable("Categories");

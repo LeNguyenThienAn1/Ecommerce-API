@@ -10,8 +10,8 @@ namespace Infrastructure
     {
         public Guid Id { get; set; }
         public DateTime CreateAt { get; set; }
-        public DateTime UpdateAt { get; set; } = DateTime.Now;
-        public string CreateBy { get; set; }
-        public string UpdateBy { get; set; }
+        public DateTime UpdateAt { get; set; } = DateTime.UtcNow;
+        public string CreateBy { get; set; } = string.Empty;
+        public string UpdateBy { get; set; } = string.Empty;
     }
 }
