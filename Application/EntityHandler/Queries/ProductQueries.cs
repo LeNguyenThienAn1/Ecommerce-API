@@ -22,14 +22,13 @@ namespace Infrastructure.Queries
         {
             try
             {
-                var productEntities = await _context.Products.DistinctBy(x => x.CategoryId).ToListAsync();
+                var productEntities = await _context.Products.ToListAsync();
                 return productEntities;
             }
             catch (Exception ex)
             {
-                // Log the exception (you can use a logging framework here)
                 Console.WriteLine($"An error occurred: {ex.Message}");
-                throw; // Re-throw the exception after logging it
+                throw;
             }
         }
         public async Task<ProductEntity> GetProductByIdAsync(Guid id)
@@ -45,7 +44,7 @@ namespace Infrastructure.Queries
                 entity.CreateAt = DateTime.UtcNow;
                 entity.Status = ProductStatus.Available;
             }
-            _context.Products.AddRange(entities);
+            await _context.Products.AddRangeAsync(entities);
             return await _context.SaveChangesAsync() > 0;
         }
 

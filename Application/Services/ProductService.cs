@@ -60,10 +60,27 @@ namespace Application.Services
         /// </summary>
         public async Task<List<ProductDto>> GetAllProductsAsync()
         {
-            var products = await _productQueries.GetAllProductsAsync()
-                           ?? Enumerable.Empty<ProductEntity>();
+            try
+            {
+                var products = await _productQueries.GetAllProductsAsync()
+                        ?? Enumerable.Empty<ProductEntity>();
 
-            return products.Select(p => MapToDto(p)).ToList();
+                var productsDict = products.GroupBy(p => p.Category).ToDictionary(g => g.Key, g => g.Select(p => MapToDto(p)));
+                var result = new List<ProductDto>();
+                foreach (var product in productsDict.Keys)
+                {
+                    var productDto = productsDict[product].First();
+                    productDto.Stock = productsDict[product].Count();
+                    result.Add(productDto);
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // Log lỗi nếu cần
+                throw new ApplicationException("Đã xảy ra lỗi khi lấy tất cả sản phẩm.", ex);
+            }
+            
         }
 
         /// <summary>
@@ -91,29 +108,30 @@ namespace Application.Services
         /// </summary>
         public async Task<bool> CreateOrUpdateProductAsync(CreateOrUpdateProductDto dto)
         {
-            var productEntity = new ProductEntity();
-
             if (dto.Id == Guid.Empty) // CREATE
             {
                 var productEntitiesToAdd = new List<ProductEntity>();
-                productEntity = new ProductEntity
-                {
-                    Name = dto.Name,
-                    Description = dto.Description,
-                    Price = dto.Price,
-                    ImageUrl = dto.ImageUrl,
-                    IsFeatured = dto.IsFeatured,
-                    FeaturedType = dto.FeaturedType,
-                    SalePercent = dto.SalePercent,
-                    CategoryId = dto.CategoryId,
-                    CreateAt = DateTime.UtcNow,
-                    UpdateAt = DateTime.UtcNow,
-                    CreateBy = "admin",
-                    UpdateBy = "admin",
-                    Detail = dto.Detail
-                };
+                
                 for (int index = 0; index < dto.Stock; index++)
                 {
+                    var productEntity = new ProductEntity
+                    {
+                        Name = dto.Name,
+                        Description = dto.Description,
+                        Price = dto.Price,
+                        ImageUrl = dto.ImageUrl,
+                        IsFeatured = dto.IsFeatured,
+                        FeaturedType = dto.FeaturedType,
+                        SalePercent = dto.SalePercent,
+                        //    CategoryId = dto.CategoryId,
+                        CreateAt = DateTime.UtcNow,
+                        UpdateAt = DateTime.UtcNow,
+                        CreateBy = "admin",
+                        UpdateBy = "admin",
+                        Detail = dto.Detail,
+                        Brand = dto.Brand,
+                        Category = dto.Category,
+                    };
                     productEntitiesToAdd.Add(productEntity);
                 }    
                 
@@ -133,7 +151,7 @@ namespace Application.Services
                 existing.IsFeatured = dto.IsFeatured;
                 existing.FeaturedType = dto.FeaturedType;
                 existing.SalePercent = dto.SalePercent;
-                existing.CategoryId = dto.CategoryId;
+              //  existing.CategoryId = dto.CategoryId;
                 existing.UpdateAt = DateTime.UtcNow;
                 existing.UpdateBy = "admin";
                 existing.Detail = dto.Detail;
@@ -164,7 +182,10 @@ namespace Application.Services
                 IsFeatured = entity.IsFeatured,
                 FeaturedType = entity.FeaturedType,
                 SalePercent = entity.SalePercent,
-                CategoryId = entity.CategoryId
+                Brand = entity.Brand,
+                Category = entity.Category,
+                Detail = entity.Detail,
+                //CategoryId = entity.CategoryId
             };
         }
     }

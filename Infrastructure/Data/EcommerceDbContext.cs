@@ -28,10 +28,10 @@ namespace Infrastructure
                 entity.Property(p => p.Name).IsRequired().HasMaxLength(200);
                 entity.Property(p => p.Price).HasColumnType("decimal(18,2)");
 
-                entity.HasOne<CategoryEntity>()
-                      .WithMany(c => c.Products)
-                      .HasForeignKey(p => p.CategoryId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                //entity.HasOne<CategoryEntity>()
+                //      .WithMany(c => c.Products)
+                //      .HasForeignKey(p => p.CategoryId)
+                //      .OnDelete(DeleteBehavior.Cascade);
 
                 // 👇 Map ProductDetail thành JSON
                 entity.Property(p => p.Detail)

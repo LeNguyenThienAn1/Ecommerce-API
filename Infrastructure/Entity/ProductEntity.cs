@@ -10,7 +10,9 @@ public class ProductEntity : BaseEntity
     public bool IsFeatured { get; set; } = false;
     public ProductFeaturedType FeaturedType { get; set; } = ProductFeaturedType.Normal;
     public int? SalePercent { get; set; }
-    public Guid CategoryId { get; set; }
+  //  public Guid CategoryId { get; set; }
+    public ProductBrand Brand { get; set; }
+    public ProductCategory Category { get; set; }
     public ProductDetail Detail { get; set; }
     public ProductStatus Status { get; set; }
     public Guid BoughtBy { get; set; } = Guid.Empty; // nếu khác Guid.Empty thì sản phẩm đã bán
