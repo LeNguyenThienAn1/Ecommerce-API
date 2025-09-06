@@ -1,4 +1,5 @@
-﻿using Infrastructure;
+﻿using Application.DTOs;
+using Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,5 +24,6 @@ namespace Application.Interfaces.Queries
 
         // Xóa sản phẩm
         Task<bool> DeleteProductAsync(Guid id);
+        Task<List<BrandDto>> GetAllBrandAsync();
     }
 }

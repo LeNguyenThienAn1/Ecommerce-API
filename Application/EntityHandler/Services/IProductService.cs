@@ -14,5 +14,6 @@ namespace Application.Interfaces.Services
         Task<List<ProductInfoDto>> GetAllProductAsync(ProductSearchDto searchDto);
         Task<bool> CreateOrUpdateProductAsync(CreateOrUpdateProductDto dto);
         Task<bool> DeleteProductAsync(Guid id);
+        Task<List<BrandDto>> GetAllBrandsAsync();
     }
 }

@@ -9,4 +9,9 @@ namespace Application.DTOs
     public class OrderDto : BaseDto
     {
     }
+    public class CreateOrderDto
+    {
+        public List<Guid> ProductIds { get; set; }
+        public Guid BoughtBy { get; set; }
+    }
 }

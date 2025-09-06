@@ -1,13 +1,14 @@
-﻿using Application.Interfaces.Services;
+﻿using Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.Services
+namespace Application.DTOs
 {
-    public class UserService : IUserService
+    public class BrandDto : BaseDto
     {
+        public string Name { get; set; }
     }
 }

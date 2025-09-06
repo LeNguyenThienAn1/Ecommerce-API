@@ -23,6 +23,13 @@ namespace Application.Services
         /// <summary>
         /// Lấy tất cả sản phẩm với filter (dùng cho User)
         /// </summary>
+        /// 
+
+        public async Task<List<BrandDto>> GetAllBrandsAsync()
+        {
+            var brands = await _productQueries.GetAllBrandAsync();
+            return brands;
+        }
         public async Task<List<ProductInfoDto>> GetAllProductsAsync(ProductSearchDto search)
         {
             var products = await _productQueries.GetAllProductsAsync()
@@ -58,30 +65,36 @@ namespace Application.Services
         /// <summary>
         /// Lấy tất cả sản phẩm (không filter) - mapping sang ProductDto
         /// </summary>
+        /// 
+
+        
         public async Task<List<ProductDto>> GetAllProductsAsync()
         {
             try
             {
                 var products = await _productQueries.GetAllProductsAsync()
-                        ?? Enumerable.Empty<ProductEntity>();
+                    ?? Enumerable.Empty<ProductEntity>();
 
-                var productsDict = products.GroupBy(p => p.Category).ToDictionary(g => g.Key, g => g.Select(p => MapToDto(p)));
-                var result = new List<ProductDto>();
-                foreach (var product in productsDict.Keys)
-                {
-                    var productDto = productsDict[product].First();
-                    productDto.Stock = productsDict[product].Count();
-                    result.Add(productDto);
-                }
-                return result;
+                // Gom nhóm theo các thuộc tính để nhận diện "sản phẩm giống nhau"
+                var groupedProducts = products
+                    .Where(p => p.Status == ProductStatus.Available) 
+                    .GroupBy(p => new { p.Name, p.Description, p.Price, p.ImageUrl, p.Category })
+                    .Select(g =>
+                    {
+                        var dto = MapToDto(g.First());
+                        dto.Stock = g.Count(); // số lượng sản phẩm giống nhau
+                        return dto;
+                    })
+                    .ToList();
+
+                return groupedProducts;
             }
             catch (Exception ex)
             {
-                // Log lỗi nếu cần
                 throw new ApplicationException("Đã xảy ra lỗi khi lấy tất cả sản phẩm.", ex);
             }
-            
         }
+
 
         /// <summary>
         /// Lấy tất cả sản phẩm có search filter (mapping sang ProductInfoDto)
@@ -90,7 +103,7 @@ namespace Application.Services
         {
             return await GetAllProductsAsync(searchDto);
         }
-
+        
         /// <summary>
         /// Lấy sản phẩm theo Id
         /// </summary>

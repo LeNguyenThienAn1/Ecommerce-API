@@ -1,5 +1,6 @@
 ﻿using Application.DTOs;
 using Application.Interfaces.Services;
+using Application.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,12 @@ namespace Api.Controllers
         public async Task<ActionResult<List<ProductDto>>> GetAllProducts()
         {
             var result = await _productService.GetAllProductsAsync();
+            return Ok(result);
+        }
+        [HttpGet("brands")]
+        public async Task<ActionResult<List<BrandDto>>> GetAllBrands()
+        {
+            var result = await _productService.GetAllBrandsAsync();
             return Ok(result);
         }
 
@@ -81,5 +88,27 @@ namespace Api.Controllers
             if (!result) return NotFound();
             return Ok(result);
         }
+        #region Liên quan tới Order
+
+        /// <summary>
+        /// Checkout: xác nhận đơn hàng
+        /// </summary>
+        // POST: /api/products/checkout
+        [HttpPost("checkout")]
+        public async Task<IActionResult> Checkout([FromBody] CreateOrderDto request, [FromServices] OrderService orderService)
+        {
+            if (request == null || request.ProductIds == null || !request.ProductIds.Any())
+                return BadRequest("Giỏ hàng trống hoặc dữ liệu không hợp lệ");
+
+            var result = await orderService.CreateOrderAsync(request);
+
+            if (result)
+                return Ok(new { success = true, message = "Đặt hàng thành công" });
+
+            return StatusCode(500, "Có lỗi xảy ra khi tạo đơn hàng");
+        }
+
+        #endregion
+
     }
 }

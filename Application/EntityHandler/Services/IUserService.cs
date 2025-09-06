@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Application.Interfaces.Services
 {
-    internal class IUserService
+    public class IUserService
     {
+
     }
 }

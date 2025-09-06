@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Application.Interfaces.Queries;
+using Application.DTOs;
 
 
 namespace Infrastructure.Queries
@@ -30,6 +31,17 @@ namespace Infrastructure.Queries
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 throw;
             }
+        }
+
+        public async Task<List<BrandDto>> GetAllBrandAsync()
+        {
+            var brands = await _context.Products
+                                       .Select(p => p.Brand)
+                                       .Distinct()
+                                       .ToListAsync();
+
+            var brandDtos = brands.Select(b => new BrandDto { Name = b.ToString() }).ToList();
+            return brandDtos;
         }
         public async Task<ProductEntity> GetProductByIdAsync(Guid id)
         {
