@@ -1,5 +1,6 @@
 ﻿using Application.DTOs;
 using Application.Interfaces.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ namespace Api.Controllers
         /// <summary>
         /// Lấy tất cả danh mục
         /// </summary>
+        // GET: /api/admin/categories
         [HttpGet("categories")]
         public async Task<ActionResult<List<CategoryInfoDto>>> GetCategories()
         {
@@ -34,6 +36,7 @@ namespace Api.Controllers
         /// <summary>
         /// Tìm kiếm danh mục theo filter
         /// </summary>
+        // POST: /api/admin/categories/search
         [HttpPost("categories/search")]
         public async Task<ActionResult<List<CategoryInfoDto>>> SearchCategories([FromBody] CategoryFilterDto filterDto)
         {
@@ -44,6 +47,7 @@ namespace Api.Controllers
         /// <summary>
         /// Lấy danh mục theo ID
         /// </summary>
+        // GET: /api/admin/categories/{id}
         [HttpGet("categories/{id}")]
         public async Task<ActionResult<CategoryDto>> GetCategoryById(Guid id)
         {
@@ -55,6 +59,7 @@ namespace Api.Controllers
         /// <summary>
         /// Tạo mới hoặc cập nhật danh mục
         /// </summary>
+        // POST: /api/admin/categories/createupdate
         [HttpPost("categories/createupdate")]
         public async Task<ActionResult<bool>> CreateOrUpdateCategory([FromBody] CreateOrUpdateCategoryDto dto)
         {
@@ -70,6 +75,7 @@ namespace Api.Controllers
         /// <summary>
         /// Xóa danh mục
         /// </summary>
+        // DELETE: /api/admin/categories/{id}
         [HttpDelete("categories/{id}")]
         public async Task<ActionResult<bool>> DeleteCategory(Guid id)
         {
@@ -79,20 +85,33 @@ namespace Api.Controllers
         }
 
         // ================== PRODUCT ===================
-        [HttpGet("products")]
-        public async Task<ActionResult<List<ProductDto>>> GetProducts()
+        /// <summary>
+        /// Lấy tất cả sản phẩm trong admin (có phân trang, lọc, sort)
+        /// </summary>
+        // GET: /api/admin/products
+        [HttpPost("Paging")]
+        public async Task<ActionResult<PagedResult<ProductDto>>> GetPagedProducts([FromBody] ProductPagingRequestDto request)
         {
-            var result = await _productService.GetAllProductsAsync();
+            var result = await _productService.GetPagedProductsAsync(request);
             return Ok(result);
         }
 
-        [HttpPost("products/search")]
-        public async Task<ActionResult<List<ProductInfoDto>>> SearchProducts([FromBody] ProductSearchDto dto)
-        {
-            var result = await _productService.GetAllProductAsync(dto);
-            return Ok(result);
-        }
 
+        /// <summary>
+        /// Tìm kiếm sản phẩm theo filter
+        /// </summary>
+        // POST: /api/admin/products/search
+        //[HttpPost("products/search")]
+        //public async Task<ActionResult<List<ProductInfoDto>>> SearchProducts([FromBody] ProductSearchDto dto)
+        //{
+        //    var result = await _productService.GetAllProductAsync(dto);
+        //    return Ok(result);
+        //}
+
+        /// <summary>
+        /// Lấy sản phẩm theo ID
+        /// </summary>
+        // GET: /api/admin/products/{id}
         [HttpGet("products/{id}")]
         public async Task<ActionResult<ProductDto>> GetProductById(Guid id)
         {
@@ -101,6 +120,10 @@ namespace Api.Controllers
             return Ok(product);
         }
 
+        /// <summary>
+        /// Tạo mới hoặc cập nhật sản phẩm
+        /// </summary>
+        // POST: /api/admin/products/createupdate
         [HttpPost("products/createupdate")]
         public async Task<ActionResult<bool>> CreateOrUpdateProduct([FromBody] CreateOrUpdateProductDto dto)
         {
@@ -113,6 +136,10 @@ namespace Api.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Xóa sản phẩm
+        /// </summary>
+        // DELETE: /api/admin/products/{id}
         [HttpDelete("products/{id}")]
         public async Task<ActionResult<bool>> DeleteProduct(Guid id)
         {

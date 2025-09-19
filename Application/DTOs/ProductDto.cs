@@ -9,15 +9,6 @@ namespace Application.DTOs
 {
     public class ProductDto : BaseDto
     {
-        //public string Name { get; set; }
-        //public string Description { get; set; }
-        //public decimal Price { get; set; }
-        //public string ImageUrl { get; set; }
-        //blic int Stock { get; set; }
-        //public bool IsFeatured { get; set; }
-        //public ProductFeaturedType FeaturedType { get; set; }
-        //public int? SalePercent { get; set; }
-        //public Guid CategoryId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
@@ -60,5 +51,15 @@ namespace Application.DTOs
     {
         public Guid? ProductId { get; set; }
         public string ProductName { get; set; }
+    }
+    public class ProductPagingRequestDto : PagedAndFilterDto
+    {
+        public List<ProductBrand> Brand { get; set; }   // không null
+        public List<ProductCategory> Category { get; set; } 
+    }
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; }
+        public int TotalCount { get; set; }
     }
 }

@@ -2,18 +2,12 @@
 using Application.Interfaces.Queries;
 using Application.Interfaces.Services;
 using Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Services
 {
     public class ProductService : IProductService
     {
         private readonly IProductQueries _productQueries;
-        private object filter;
 
         public ProductService(IProductQueries productQueries)
         {
@@ -21,170 +15,58 @@ namespace Application.Services
         }
 
         /// <summary>
-        /// Lấy tất cả sản phẩm với filter (dùng cho User)
+        /// Lấy tất cả brands
         /// </summary>
-        /// 
-
         public async Task<List<BrandDto>> GetAllBrandsAsync()
         {
-            var brands = await _productQueries.GetAllBrandAsync();
-            return brands;
+            return await _productQueries.GetAllBrandAsync();
         }
+
+        /// <summary>
+        /// Lấy sản phẩm phân trang (cho User/Admin)
+        /// </summary>
+        public async Task<PagedResult<ProductDto>> GetPagedProductsAsync(ProductPagingRequestDto request)
+        {
+            return await _productQueries.GetAllProductsAsync(request);
+        }
+
+        /// <summary>
+        /// Lấy sản phẩm theo search (trả về ProductInfoDto)
+        /// </summary>
         public async Task<List<ProductInfoDto>> GetAllProductsAsync(ProductSearchDto search)
         {
-            var products = await _productQueries.GetAllProductsAsync()
-                           ?? Enumerable.Empty<ProductEntity>();
-
-            // Search theo tên sản phẩm
-            if (!string.IsNullOrWhiteSpace(search?.ProductName))
+            var request = new ProductPagingRequestDto
             {
-                var searchContent = search.ProductName.Trim().ToLower();
-                products = products.Where(c => c.Name != null &&
-                                               c.Name.ToLower().Contains(searchContent));
-            }
+                PageNumber = 1,
+                PageSize = int.MaxValue, // lấy hết
+                SearchTerm = search?.ProductName
+            };
 
-            // Filter theo ProductId
+            var result = await _productQueries.GetAllProductsAsync(request);
+
+            var products = result.Items;
+
+            // Filter theo ProductId nếu có
             if (search?.ProductId is Guid productId && productId != Guid.Empty)
             {
-                products = products.Where(c => c.Id == productId);
+                products = products.Where(c => c.Id == productId).ToList();
             }
 
-            var result = new List<ProductInfoDto>();
-            foreach (var product in products)
+            return products.Select(p => new ProductInfoDto
             {
-                var productDto = new ProductInfoDto
-                {
-                    ProductId = product.Id,
-                    ProductName = product.Name,
-                };
-                result.Add(productDto);
-            }
-            return result;
+                ProductId = p.Id,
+                ProductName = p.Name
+            }).ToList();
         }
 
-        /// <summary>
-        /// Lấy tất cả sản phẩm (không filter) - mapping sang ProductDto
-        /// </summary>
-        /// 
-
-        
-        public async Task<List<ProductDto>> GetAllProductsAsync()
-        {
-            try
-            {
-                var products = await _productQueries.GetAllProductsAsync()
-                    ?? Enumerable.Empty<ProductEntity>();
-
-                // Gom nhóm theo các thuộc tính để nhận diện "sản phẩm giống nhau"
-                var groupedProducts = products
-                    .Where(p => p.Status == ProductStatus.Available) 
-                    .GroupBy(p => new { p.Name, p.Description, p.Price, p.ImageUrl, p.Category })
-                    .Select(g =>
-                    {
-                        var dto = MapToDto(g.First());
-                        dto.Stock = g.Count(); // số lượng sản phẩm giống nhau
-                        return dto;
-                    })
-                    .ToList();
-
-                return groupedProducts;
-            }
-            catch (Exception ex)
-            {
-                throw new ApplicationException("Đã xảy ra lỗi khi lấy tất cả sản phẩm.", ex);
-            }
-        }
-
-
-        /// <summary>
-        /// Lấy tất cả sản phẩm có search filter (mapping sang ProductInfoDto)
-        /// </summary>
-        public async Task<List<ProductInfoDto>> GetAllProductAsync(ProductSearchDto searchDto)
-        {
-            return await GetAllProductsAsync(searchDto);
-        }
-        
         /// <summary>
         /// Lấy sản phẩm theo Id
         /// </summary>
-        public async Task<ProductDto> GetProductByIdAsync(Guid id)
+        public async Task<ProductDto?> GetProductByIdAsync(Guid id)
         {
             var entity = await _productQueries.GetProductByIdAsync(id);
-            if (entity == null)
-                return null;
+            if (entity == null) return null;
 
-            return MapToDto(entity);
-        }
-
-        /// <summary>
-        /// Tạo mới hoặc cập nhật sản phẩm
-        /// </summary>
-        public async Task<bool> CreateOrUpdateProductAsync(CreateOrUpdateProductDto dto)
-        {
-            if (dto.Id == Guid.Empty) // CREATE
-            {
-                var productEntitiesToAdd = new List<ProductEntity>();
-                
-                for (int index = 0; index < dto.Stock; index++)
-                {
-                    var productEntity = new ProductEntity
-                    {
-                        Name = dto.Name,
-                        Description = dto.Description,
-                        Price = dto.Price,
-                        ImageUrl = dto.ImageUrl,
-                        IsFeatured = dto.IsFeatured,
-                        FeaturedType = dto.FeaturedType,
-                        SalePercent = dto.SalePercent,
-                        //    CategoryId = dto.CategoryId,
-                        CreateAt = DateTime.UtcNow,
-                        UpdateAt = DateTime.UtcNow,
-                        CreateBy = "admin",
-                        UpdateBy = "admin",
-                        Detail = dto.Detail,
-                        Brand = dto.Brand,
-                        Category = dto.Category,
-                    };
-                    productEntitiesToAdd.Add(productEntity);
-                }    
-                
-
-                return await _productQueries.CreateProductAsync(productEntitiesToAdd);
-            }
-            else // UPDATE
-            {
-                var existing = await _productQueries.GetProductByIdAsync(dto.Id);
-                if (existing == null) return false;
-
-                // update fields trực tiếp trên entity đã được track
-                existing.Name = dto.Name;
-                existing.Description = dto.Description;
-                existing.Price = dto.Price;
-                existing.ImageUrl = dto.ImageUrl;
-                existing.IsFeatured = dto.IsFeatured;
-                existing.FeaturedType = dto.FeaturedType;
-                existing.SalePercent = dto.SalePercent;
-              //  existing.CategoryId = dto.CategoryId;
-                existing.UpdateAt = DateTime.UtcNow;
-                existing.UpdateBy = "admin";
-                existing.Detail = dto.Detail;
-
-                return await _productQueries.UpdateProductAsync(existing);
-            }
-
-        }
-
-        /// <summary>
-        /// Xóa sản phẩm theo Id
-        /// </summary>
-        public async Task<bool> DeleteProductAsync(Guid id)
-        {
-            return await _productQueries.DeleteProductAsync(id);
-        }
-
-        // ===== Private helper =====
-        private ProductDto MapToDto(ProductEntity entity)
-        {
             return new ProductDto
             {
                 Id = entity.Id,
@@ -198,8 +80,69 @@ namespace Application.Services
                 Brand = entity.Brand,
                 Category = entity.Category,
                 Detail = entity.Detail,
-                //CategoryId = entity.CategoryId
+                CreateAt = entity.CreateAt
             };
+        }
+
+        /// <summary>
+        /// Tạo mới hoặc cập nhật sản phẩm
+        /// </summary>
+        public async Task<bool> CreateOrUpdateProductAsync(CreateOrUpdateProductDto dto)
+        {
+            if (dto.Id == Guid.Empty) // CREATE
+            {
+                var productEntitiesToAdd = new List<ProductEntity>();
+                for (int i = 0; i < dto.Stock; i++)
+                {
+                    productEntitiesToAdd.Add(new ProductEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = dto.Name,
+                        Description = dto.Description,
+                        Price = dto.Price,
+                        ImageUrl = dto.ImageUrl,
+                        IsFeatured = dto.IsFeatured,
+                        FeaturedType = dto.FeaturedType,
+                        SalePercent = dto.SalePercent,
+                        Detail = dto.Detail,
+                        Brand = dto.Brand,
+                        Category = dto.Category,
+                        CreateAt = DateTime.UtcNow,
+                        UpdateAt = DateTime.UtcNow,
+                        CreateBy = "admin",
+                        UpdateBy = "admin",
+                        Status = ProductStatus.Available
+                    });
+                }
+
+                return await _productQueries.CreateProductAsync(productEntitiesToAdd);
+            }
+            else // UPDATE
+            {
+                var existing = await _productQueries.GetProductByIdAsync(dto.Id);
+                if (existing == null) return false;
+
+                existing.Name = dto.Name;
+                existing.Description = dto.Description;
+                existing.Price = dto.Price;
+                existing.ImageUrl = dto.ImageUrl;
+                existing.IsFeatured = dto.IsFeatured;
+                existing.FeaturedType = dto.FeaturedType;
+                existing.SalePercent = dto.SalePercent;
+                existing.Detail = dto.Detail;
+                existing.UpdateAt = DateTime.UtcNow;
+                existing.UpdateBy = "admin";
+
+                return await _productQueries.UpdateProductAsync(existing);
+            }
+        }
+
+        /// <summary>
+        /// Xóa sản phẩm theo Id
+        /// </summary>
+        public async Task<bool> DeleteProductAsync(Guid id)
+        {
+            return await _productQueries.DeleteProductAsync(id);
         }
     }
 }

@@ -9,6 +9,6 @@ namespace Application.Interfaces.Queries
 {
     public interface IUserQueries
     {
-        public Task<UserEntity> GetUserAsync();
+        public Task<UserEntity> GetUserByPhoneNumber(string phoneNumber);
     }
 }

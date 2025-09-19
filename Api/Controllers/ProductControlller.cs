@@ -1,9 +1,11 @@
 ﻿using Application.DTOs;
+using Application.EntityHandler.Services;
 using Application.Interfaces.Services;
-using Application.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Api.Controllers
@@ -20,15 +22,21 @@ namespace Api.Controllers
         }
 
         /// <summary>
-        /// Lấy tất cả sản phẩm
+        /// Lấy tất cả sản phẩm (có phân trang, lọc, sort)
         /// </summary>
         // GET: /api/products
-        [HttpGet]
-        public async Task<ActionResult<List<ProductDto>>> GetAllProducts()
+        [HttpPost("Paging")]
+        public async Task<ActionResult<PagedResult<ProductDto>>> GetPagedProducts([FromBody] ProductPagingRequestDto request)
         {
-            var result = await _productService.GetAllProductsAsync();
+            var result = await _productService.GetPagedProductsAsync(request);
             return Ok(result);
         }
+
+
+        /// <summary>
+        /// Lấy tất cả thương hiệu
+        /// </summary>
+        // GET: /api/products/brands
         [HttpGet("brands")]
         public async Task<ActionResult<List<BrandDto>>> GetAllBrands()
         {
@@ -40,12 +48,12 @@ namespace Api.Controllers
         /// Tìm kiếm sản phẩm theo điều kiện
         /// </summary>
         // POST: /api/products/search
-        [HttpPost("search")]
-        public async Task<ActionResult<List<ProductInfoDto>>> SearchProducts([FromBody] ProductSearchDto searchDto)
-        {
-            var result = await _productService.GetAllProductAsync(searchDto);
-            return Ok(result);
-        }
+        //[HttpPost("search")]
+        //public async Task<ActionResult<List<ProductInfoDto>>> SearchProducts([FromBody] ProductSearchDto searchDto)
+        //{
+        //    var result = await _productService.GetAllProductAsync(searchDto);
+        //    return Ok(result);
+        //}
 
         /// <summary>
         /// Lấy sản phẩm theo ID
@@ -88,6 +96,7 @@ namespace Api.Controllers
             if (!result) return NotFound();
             return Ok(result);
         }
+
         #region Liên quan tới Order
 
         /// <summary>
@@ -95,7 +104,7 @@ namespace Api.Controllers
         /// </summary>
         // POST: /api/products/checkout
         [HttpPost("checkout")]
-        public async Task<IActionResult> Checkout([FromBody] CreateOrderDto request, [FromServices] OrderService orderService)
+        public async Task<IActionResult> Checkout([FromBody] CreateOrderDto request, [FromServices] IOrderService orderService)
         {
             if (request == null || request.ProductIds == null || !request.ProductIds.Any())
                 return BadRequest("Giỏ hàng trống hoặc dữ liệu không hợp lệ");
@@ -109,6 +118,5 @@ namespace Api.Controllers
         }
 
         #endregion
-
     }
 }

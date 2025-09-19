@@ -11,7 +11,7 @@ namespace Application.Interfaces.Queries
     public interface IProductQueries
     {
         // Lấy tất cả sản phẩm
-        Task<IEnumerable<ProductEntity>> GetAllProductsAsync();
+        Task<PagedResult<ProductDto>> GetAllProductsAsync(ProductPagingRequestDto request);
 
         // Lấy sản phẩm theo ID
         Task<ProductEntity> GetProductByIdAsync(Guid id);
