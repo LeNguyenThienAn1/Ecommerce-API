@@ -1,18 +1,27 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure
 {
     public class UserEntity : BaseEntity
     {
-        public string Name { get; set; }
-        public string Password { get; set; }
-        public string PhoneNumber { get; set; }
-        public string Address { get; set; }
-        public UserType Role { get; set; } // Admin, Customer
-        public string RefreshToken { get; set; } 
+        public string Name { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
+
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        public string Address { get; set; } = string.Empty;
+
+        public string AvatarUrl { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+
+        public string RejectReason { get; set; } = string.Empty;
+
+        public UserType Role { get; set; } // Admin, Customer, etc.
+
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }

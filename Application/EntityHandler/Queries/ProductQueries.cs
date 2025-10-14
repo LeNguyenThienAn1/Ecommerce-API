@@ -2,12 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Application.Interfaces.Queries;
 using Application.DTOs;
-using Microsoft.EntityFrameworkCore.Internal;
-
+using Infrastructure.Entity;
 
 namespace Infrastructure.Queries
 {
@@ -20,9 +18,16 @@ namespace Infrastructure.Queries
             _context = context;
         }
 
+        /// <summary>
+        /// Lấy tất cả sản phẩm (có phân trang + lọc)
+        /// </summary>
         public async Task<PagedResult<ProductDto>> GetAllProductsAsync(ProductPagingRequestDto request)
         {
-            var query = _context.Products.Where(p => p.Status == ProductStatus.Available);
+            var query = _context.Products
+                .Include(p => p.Brand)
+                .Include(p => p.Category)
+                .Where(p => p.Status == ProductStatus.Available)
+                .AsQueryable();
 
             // --- Search ---
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -31,16 +36,16 @@ namespace Infrastructure.Queries
                 query = query.Where(p => p.Name.ToLower().Contains(search));
             }
 
-            // --- Filter by Brand ---
-            if (request.Brand != null && request.Brand.Any())
+           // ---filter by brand ---
+            if (request.BrandIds != null && request.BrandIds.Any())
             {
-                query = query.Where(p => request.Brand.Contains(p.Brand));
+                query = query.Where(p => request.BrandIds.Contains(p.BrandId));
             }
 
-            // --- Filter by Category ---
-            if (request.Category != null && request.Category.Any())
+           // ---filter by category ---
+            if (request.CategoryIds != null && request.CategoryIds.Any())
             {
-                query = query.Where(p => request.Category.Contains(p.Category));
+                query = query.Where(p => request.CategoryIds.Contains(p.CategoryId));
             }
 
             // --- Tổng số bản ghi ---
@@ -66,24 +71,32 @@ namespace Infrastructure.Queries
             }
 
             // --- Paging ---
-            int skip = (request.PageNumber - 1) * request.PageSize;
+            int pageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
+            int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+            int skip = (pageNumber - 1) * pageSize;
+
             var items = await query
                 .Skip(skip)
-                .Take(request.PageSize)
+                .Take(pageSize)
+                .AsNoTracking()
                 .Select(p => new ProductDto
                 {
                     Id = p.Id,
                     Name = p.Name,
+                    Description = p.Description,
                     Price = p.Price,
-                    Brand = p.Brand,
-                    Category = p.Category,
-                    CreateAt = p.CreateAt,
                     ImageUrl = p.ImageUrl,
                     IsFeatured = p.IsFeatured,
                     FeaturedType = p.FeaturedType,
-                    SalePercent = p.SalePercent
+                    SalePercent = p.SalePercent,
+                    CategoryId = p.CategoryId,
+                    BrandId = p.BrandId,
+
+                     //  CategoryId = Guid.Empty,
+                    //BrandId = Guid.Empty,
+                    CreateAt = p.CreateAt,
+                    Detail = p.Detail
                 })
-                .AsNoTracking()
                 .ToListAsync();
 
             return new PagedResult<ProductDto>
@@ -93,38 +106,37 @@ namespace Infrastructure.Queries
             };
         }
 
-
-
-
-        //public async Task<IEnumerable<ProductEntity>> GetAllProductsAsync(ProductPagingRequestDto request)
-        //{
-        //    try
-        //    {
-        //        var productEntities = await _context.Products.ToListAsync();
-        //        return productEntities;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"An error occurred: {ex.Message}");
-        //        throw;
-        //    }
-        //}
-
+        /// <summary>
+        /// Lấy tất cả brand
+        /// </summary>
         public async Task<List<BrandDto>> GetAllBrandAsync()
         {
-            var brands = await _context.Products
-                                       .Select(p => p.Brand)
-                                       .Distinct()
-                                       .ToListAsync();
+            var brands = await _context.Brands
+                .AsNoTracking()
+                .Select(b => new BrandDto
+                {
+                    Id = b.Id,
+                    Name = b.Name
+                })
+                .ToListAsync();
 
-            var brandDtos = brands.Select(b => new BrandDto { Name = b.ToString() }).ToList();
-            return brandDtos;
+            return brands;
         }
+
+        /// <summary>
+        /// Lấy sản phẩm theo Id (bao gồm Category & Brand)
+        /// </summary>
         public async Task<ProductEntity> GetProductByIdAsync(Guid id)
         {
-            return await _context.Products.FindAsync(id);
+            return await _context.Products
+                .Include(p => p.Brand)
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
+        /// <summary>
+        /// Tạo mới nhiều sản phẩm
+        /// </summary>
         public async Task<bool> CreateProductAsync(List<ProductEntity> entities)
         {
             foreach (var entity in entities)
@@ -133,16 +145,23 @@ namespace Infrastructure.Queries
                 entity.CreateAt = DateTime.UtcNow;
                 entity.Status = ProductStatus.Available;
             }
+
             await _context.Products.AddRangeAsync(entities);
             return await _context.SaveChangesAsync() > 0;
         }
 
+        /// <summary>
+        /// Cập nhật sản phẩm
+        /// </summary>
         public async Task<bool> UpdateProductAsync(ProductEntity entity)
-            {
+        {
             _context.Products.Update(entity);
             return await _context.SaveChangesAsync() > 0;
         }
 
+        /// <summary>
+        /// Xóa sản phẩm theo Id
+        /// </summary>
         public async Task<bool> DeleteProductAsync(Guid id)
         {
             var existing = await _context.Products.FindAsync(id);
@@ -154,4 +173,3 @@ namespace Infrastructure.Queries
         }
     }
 }
-

@@ -27,6 +27,7 @@ namespace Application.DTOs
         {
             public Guid? CategoryId { get; set; } // Id của Category
             public string CategoryName { get; set; }
-        }
+            public string Description { get; set; }
+    }
     }
 

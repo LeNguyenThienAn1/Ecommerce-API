@@ -8,10 +8,9 @@ namespace Infrastructure
 {
     public class CategoryEntity : BaseEntity
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
-        // Quan hệ: 1 Category có nhiều Product
-        public ICollection<ProductEntity> Products { get; set; }
+        public ICollection<ProductEntity>? Products { get; set; }
     }
 }

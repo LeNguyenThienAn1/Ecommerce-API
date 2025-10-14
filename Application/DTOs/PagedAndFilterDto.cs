@@ -12,5 +12,6 @@ namespace Application.DTOs
         public int PageSize { get; set; } = 10;
         public string? SearchTerm { get; set; }
         public string? SortBy { get; set; }
+
     }
 }

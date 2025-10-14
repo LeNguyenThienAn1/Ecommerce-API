@@ -1,23 +1,35 @@
 ﻿using Application.DTOs;
-using Infrastructure;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Application.Interfaces.Services
 {
     public interface ICategoryService
     {
-        // Admin: có filter
-        Task<List<CategoryInfoDto>> GetAllCategoriesAsync(CategoryFilterDto filterDto);
-        // User: lấy tất cả
+        /// <summary>
+        /// Dành cho admin - Lấy danh sách danh mục có filter
+        /// </summary>
+        Task<List<CategoryInfoDto>> GetAllCategoriesAsync(CategoryFilterDto? filterDto);
+
+        /// <summary>
+        /// Dành cho user - Lấy tất cả danh mục (không filter)
+        /// </summary>
         Task<List<CategoryInfoDto>> GetAllCategoriesAsync();
-        Task<CategoryEntity> GetCategoryByIdAsync(Guid id);
+
+        /// <summary>
+        /// Lấy thông tin danh mục theo ID
+        /// </summary>
+        Task<CategoryDto?> GetCategoryByIdAsync(Guid id);
+
+        /// <summary>
+        /// Tạo mới hoặc cập nhật danh mục
+        /// </summary>
         Task<bool> CreateOrUpdateCategoryAsync(CreateOrUpdateCategoryDto dto);
 
-        // Xoá danh mục
+        /// <summary>
+        /// Xóa danh mục theo ID
+        /// </summary>
         Task<bool> DeleteCategoryAsync(Guid id);
     }
 }

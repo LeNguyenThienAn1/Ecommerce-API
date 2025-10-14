@@ -1,146 +1,152 @@
-﻿//using Application.DTOs;
-//using Application.EntityHandler.Services;
-//using Application.Interfaces.Queries;
-//using Infrastructure;
-//using Microsoft.EntityFrameworkCore;
-//using Microsoft.IdentityModel.Tokens;
-//using System.IdentityModel.Tokens.Jwt;
-//using System.Security.Claims;
-//using System.Text;
+﻿using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using Application.DTOs;
+using Infrastructure;
+using Infrastructure.Entity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using static Application.DTOs.AuthDto;
 
-//namespace Application.Services
-//{
-//    public class AuthService : IAuthService
-//    {
-//        private readonly EcommerceDbContext _context;
-//        private readonly IUserQueries _userQueries;
-//        private readonly string _jwtSecret = "your_secret_key_here"; // TODO: lấy từ appsettings.json
+namespace Application.EntityHandler.Services.Implementations
+{
+    public class AuthService : IAuthService
+    {
+        private readonly EcommerceDbContext _db;
+        private readonly IConfiguration _config;
 
-//        public AuthService(EcommerceDbContext context, IUserQueries userQueries)
-//        {
-//            _context = context;
-//            _userQueries = userQueries;
-//        }
+        public AuthService(EcommerceDbContext db, IConfiguration config)
+        {
+            _db = db;
+            _config = config;
+        }
 
-//        public async Task<AuthenticateResponseDto?> Login(string phoneNumber)
-//        {
-//            try
-//            {
-//                var user = await _userQueries.GetUserByPhoneNumber(phoneNumber);
+        // ✅ Chuẩn hóa số điện thoại (đảm bảo backend luôn thống nhất format)
+        private string NormalizePhone(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+                return phone;
 
-//                if (user == null) return null; // không tồn tại số điện thoại
+            phone = phone.Trim();
 
-//                var jwtToken = GenerateAccessToken(user);
-//                var refreshToken = GenerateRefreshToken(user);
+            if (phone.StartsWith("0"))
+                return "+84" + phone.Substring(1);
+            if (phone.StartsWith("84") && !phone.StartsWith("+84"))
+                return "+" + phone;
 
-//                user.RefreshToken = refreshToken;
-//                _context.Users.Update(user);
-//                await _context.SaveChangesAsync();
+            return phone;
+        }
 
-//                return new AuthenticateResponseDto(user, jwtToken, refreshToken);
-//            }
-//            catch (Exception ex)
-//            {
-//                Console.Error.WriteLine(ex);
-//                return null;
-//            }
-//        }
+        // --------------------- ĐĂNG KÝ ---------------------
+        public async Task<string> RegisterAsync(RegisterRequest request)
+        {
+            request.PhoneNumber = NormalizePhone(request.PhoneNumber);
 
-//        public async Task<AuthenticateResponseDto?> RefreshToken(string token)
-//        {
-//            var user = await _context.Users.SingleOrDefaultAsync(u => u.RefreshToken == token);
-//            if (user == null) return null;
+            if (await _db.Users.AnyAsync(u => u.PhoneNumber == request.PhoneNumber))
+                throw new Exception("Số điện thoại đã được đăng ký.");
 
-//            var refreshToken = ValidateToken(token);
-//            if (refreshToken == null) return null;
+            var user = new UserEntity
+            {
+                Id = Guid.NewGuid(),
+                PhoneNumber = request.PhoneNumber,
+                Name = request.Name ?? "Người dùng mới",
+                Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                Role = UserType.Customer,
+                CreateAt = DateTime.UtcNow
+            };
 
-//            var userIdFromToken = refreshToken.Claims
-//                .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            await _db.Users.AddAsync(user);
+            await _db.SaveChangesAsync();
 
-//            if (userIdFromToken == null || user.Id != long.Parse(userIdFromToken))
-//                return null;
+            return "Đăng ký thành công.";
+        }
 
-//            var jwtToken = GenerateAccessToken(user);
-//            return new AuthenticateResponseDto(user, jwtToken, null);
-//        }
+        // --------------------- ĐĂNG NHẬP ---------------------
+        public async Task<AuthResult> LoginAsync(LoginRequest request)
+        {
+            request.PhoneNumber = NormalizePhone(request.PhoneNumber);
 
-//        public async Task RevokeToken(string refreshToken)
-//        {
-//            var user = await _context.Users.SingleOrDefaultAsync(u => u.RefreshToken == refreshToken);
-//            if (user == null) return;
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+            if (user == null)
+                throw new Exception("Tài khoản không tồn tại.");
 
-//            user.RefreshToken = null;
-//            _context.Users.Update(user);
-//            await _context.SaveChangesAsync();
-//        }
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+                throw new Exception("Sai mật khẩu.");
 
-//        private string GenerateAccessToken(UserEntity user)
-//        {
-//            var tokenHandler = new JwtSecurityTokenHandler();
-//            var key = Encoding.ASCII.GetBytes(_jwtSecret);
+            var tokens = GenerateJwtTokens(user);
 
-//            var tokenDescriptor = new SecurityTokenDescriptor
-//            {
-//                Subject = new ClaimsIdentity(new Claim[]
-//                {
-//                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-//                    new Claim(ClaimTypes.Role, user.Role.ToString())
-//                }),
-//                Expires = DateTime.UtcNow.AddMinutes(30),
-//                SigningCredentials = new SigningCredentials(
-//                    new SymmetricSecurityKey(key),
-//                    SecurityAlgorithms.HmacSha256Signature
-//                )
-//            };
+            user.RefreshToken = tokens.RefreshToken;
+            await _db.SaveChangesAsync();
 
-//            var token = tokenHandler.CreateToken(tokenDescriptor);
-//            return tokenHandler.WriteToken(token);
-//        }
+            return tokens;
+        }
 
-//        private string GenerateRefreshToken(UserEntity user)
-//        {
-//            var tokenHandler = new JwtSecurityTokenHandler();
-//            var key = Encoding.ASCII.GetBytes(_jwtSecret);
+        // --------------------- LÀM MỚI TOKEN ---------------------
+        public async Task<AuthResult> RefreshTokenAsync(RefreshTokenRequest request)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken);
+            if (user == null)
+                throw new Exception("Refresh token không hợp lệ.");
 
-//            var tokenDescriptor = new SecurityTokenDescriptor
-//            {
-//                Subject = new ClaimsIdentity(new Claim[]
-//                {
-//                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-//                }),
-//                Expires = DateTime.UtcNow.AddDays(7),
-//                SigningCredentials = new SigningCredentials(
-//                    new SymmetricSecurityKey(key),
-//                    SecurityAlgorithms.HmacSha256Signature
-//                )
-//            };
+            var tokens = GenerateJwtTokens(user);
 
-//            var token = tokenHandler.CreateToken(tokenDescriptor);
-//            return tokenHandler.WriteToken(token);
-//        }
+            user.RefreshToken = tokens.RefreshToken;
+            await _db.SaveChangesAsync();
 
-//        private JwtSecurityToken? ValidateToken(string token)
-//        {
-//            try
-//            {
-//                var tokenHandler = new JwtSecurityTokenHandler();
-//                var key = Encoding.ASCII.GetBytes(_jwtSecret);
+            return tokens;
+        }
 
-//                tokenHandler.ValidateToken(token, new TokenValidationParameters
-//                {
-//                    ValidateIssuerSigningKey = true,
-//                    IssuerSigningKey = new SymmetricSecurityKey(key),
-//                    ValidateIssuer = false,
-//                    ValidateAudience = false,
-//                }, out SecurityToken validatedToken);
+        // --------------------- ĐĂNG XUẤT ---------------------
+        public async Task LogoutAsync(LogoutRequest request)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken);
+            if (user != null)
+            {
+                user.RefreshToken = null;
+                await _db.SaveChangesAsync();
+            }
+        }
 
-//                return (JwtSecurityToken)validatedToken;
-//            }
-//            catch (Exception e)
-//            {
-//                Console.Error.WriteLine(e);
-//                return null;
-//            }
-//        }
-//    }
-//}
+        // --------------------- HÀM SINH TOKEN ---------------------
+        private AuthResult GenerateJwtTokens(UserEntity user)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var expires = DateTime.UtcNow.AddMinutes(30);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim("phone", user.PhoneNumber ?? string.Empty),
+                new Claim(ClaimTypes.Role, user.Role.ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: expires,
+                signingCredentials: creds
+            );
+
+            return new AuthResult
+            {
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+                RefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                ExpiresAt = expires,
+                User = new UserProfileDto
+                {
+                    Id = user.Id,
+                    PhoneNumber = user.PhoneNumber,
+                    Name = user.Name,
+                    Role = user.Role.ToString()
+                }
+            };
+        }
+    }
+}

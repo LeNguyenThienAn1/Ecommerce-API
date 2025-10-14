@@ -2,10 +2,11 @@
 using Application.Interfaces.Queries;
 using Application.Interfaces.Services;
 using Infrastructure;
+using Infrastructure.Entity;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Application.Services
@@ -13,78 +14,110 @@ namespace Application.Services
     public class CategoryService : ICategoryService
     {
         private readonly ICategoryQueries _categoryQueries;
+        private readonly EcommerceDbContext _context;
 
-        public CategoryService(ICategoryQueries categoryQueries)
+        public CategoryService(ICategoryQueries categoryQueries, EcommerceDbContext context)
         {
             _categoryQueries = categoryQueries;
+            _context = context;
         }
 
-        // GetAll với filter 
-        public async Task<List<CategoryInfoDto>> GetAllCategoriesAsync(CategoryFilterDto filter)
+        // ====================== ADMIN - Lấy tất cả danh mục có filter ======================
+        public async Task<List<CategoryInfoDto>> GetAllCategoriesAsync(CategoryFilterDto? filter)
         {
-            var categories = await _categoryQueries.GetAllCategoriesAsync();
-            var result = new List<CategoryInfoDto>();
-            foreach (var category in categories)
+            var query = _context.Categories.AsQueryable();
+
+            // 🔍 Filter theo tên
+            if (!string.IsNullOrEmpty(filter?.CategoryName))
             {
-                var categoryDto = new CategoryInfoDto
-                {
-                    CategoryId = category.Id,
-                    CategoryName = category.Name,
-                };
-                result.Add(categoryDto);
+                query = query.Where(c => c.Name.Contains(filter.CategoryName));
             }
+
+            // 🔍 Có thể mở rộng thêm filter theo ngày tạo, mô tả...
+            // if (!string.IsNullOrEmpty(filter?.Description))
+            //     query = query.Where(c => c.Description.Contains(filter.Description));
+
+            var result = await query
+                .OrderBy(c => c.Name)
+                .Select(c => new CategoryInfoDto
+                {
+                    CategoryId = c.Id,
+                    CategoryName = c.Name,
+                    Description = c.Description
+                })
+                .ToListAsync();
+
             return result;
         }
 
-        // GetAll không filter (cho User)
+        // ====================== USER - Lấy tất cả danh mục (không filter) ======================
         public async Task<List<CategoryInfoDto>> GetAllCategoriesAsync()
         {
             var categories = await _categoryQueries.GetAllCategoriesAsync();
-            var result = new List<CategoryInfoDto>();
-
-            foreach (var category in categories)
+            return categories.Select(c => new CategoryInfoDto
             {
-                var categoryDto = new CategoryInfoDto
-                {
-                    CategoryId = category.Id,
-                    CategoryName = category.Name,
-                };
-                result.Add(categoryDto);
-            }
-
-            return result;
+                CategoryId = c.Id,
+                CategoryName = c.Name,
+            }).ToList();
         }
 
-        // Get by Id
-        public async Task<CategoryEntity> GetCategoryByIdAsync(Guid id)
+        // ====================== Lấy danh mục theo ID ======================
+        public async Task<CategoryDto?> GetCategoryByIdAsync(Guid id)
         {
-            return await _categoryQueries.GetCategoryByIdAsync(id);
+            var cat = await _categoryQueries.GetCategoryByIdAsync(id);
+            if (cat == null) return null;
+
+            return new CategoryDto
+            {
+                Name = cat.Name,
+                Description = cat.Description
+            };
         }
 
-        // Create or Update
+        // ====================== Tạo hoặc cập nhật danh mục ======================
         public async Task<bool> CreateOrUpdateCategoryAsync(CreateOrUpdateCategoryDto dto)
         {
-            var categoryEntity = new CategoryEntity
-            {
-                Name = dto.Name,
-                Description = dto.Description
-            };
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ArgumentException("Tên danh mục không được để trống.");
 
             if (dto.Id == Guid.Empty)
             {
-                return await _categoryQueries.CreateCategoryAsync(categoryEntity);
+                // 🆕 CREATE
+                var entity = new CategoryEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = dto.Name.Trim(),
+                    Description = dto.Description?.Trim(),
+                };
+
+                await _context.Categories.AddAsync(entity);
             }
             else
             {
-                categoryEntity.Id = dto.Id;
-                return await _categoryQueries.UpdateCategoryAsync(categoryEntity);
+                // ✏️ UPDATE
+                var entity = await _context.Categories.FindAsync(dto.Id);
+                if (entity == null) return false;
+
+                entity.Name = dto.Name.Trim();
+                entity.Description = dto.Description?.Trim();
+
+                _context.Categories.Update(entity);
             }
+
+            return await _context.SaveChangesAsync() > 0;
         }
 
-        // Delete
+        // ====================== Xóa danh mục ======================
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
-            return await _categoryQueries.DeleteCategoryAsync(id);
+            var entity = await _context.Categories.FindAsync(id);
+            if (entity == null) return false;
+
+            _context.Categories.Remove(entity);
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

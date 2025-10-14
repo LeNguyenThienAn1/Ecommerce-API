@@ -78,6 +78,18 @@ namespace Infrastructure
         Brown = 10,
         Red = 11,
     }
+
+    public enum Size
+    {
+        None,        // trường hợp mặc định
+        Inch32,      // map "32-inch"
+        Inch43,      // map "43-inch"
+        Inch50,      // map "50-inch"
+        Inch55,      // map "55-inch"
+        Inch65,      // map "65-inch"
+        Inch75,      // map "75-inch"
+        Inch85       // map "85-inch"
+    }
     public enum Capacity
     {
         None = 0,

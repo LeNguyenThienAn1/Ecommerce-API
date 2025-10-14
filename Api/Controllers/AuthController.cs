@@ -1,97 +1,63 @@
-﻿//using Application.DTOs;
-//using Api.Controllers.Contract;
-//using Application.DTOS;
-//using Api.Service.Database;
-//using Microsoft.AspNetCore.Authorization;
-//using Microsoft.AspNetCore.Mvc;
-//using NuGet.Common;
+﻿using Application.EntityHandler.Services;
+using Application.EntityHandler.Services.Implementations;
+using Microsoft.AspNetCore.Mvc;
+using static Application.DTOs.AuthDto;
 
-//namespace Api.Controllers
-//{
-//    [Route("api/[controller]")]
-//    [ApiController]
-//    public class AuthController : IRentController
-//    {
-//        public AuthController(IUnitOfWork serviceWrapper) : base(serviceWrapper)
-//        {
-//        }
+namespace Api.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthService _authService;
 
-//        [HttpPost("login")]
-//        public async Task<IActionResult> Login(LoginInfo loginInfo)
-//        {
-//            if (loginInfo != null)
-//            {
-//                var response = await Service.AuthService.Login(loginInfo.Email, loginInfo.Password);
+        public AuthController(IAuthService authService)
+        {
+            _authService = authService;
+        }
 
-//                if (response == null)
-//                    return BadRequest(new { message = "Username or password is incorrect" });
+        // ---------------- REGISTER ----------------
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest req)
+        {
+            if (req == null)
+                return BadRequest("Invalid request.");
 
-//                SetTokenCookie(response.RefreshToken);
+            var result = await _authService.RegisterAsync(req);
+            return Ok(new { message = result });
+        }
 
-//                return Ok(response);
-//            }
-//            else return BadRequest();
-//        }
+        // ---------------- LOGIN ----------------
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest req)
+        {
+            if (req == null)
+                return BadRequest("Invalid request.");
 
-//        [AllowAnonymous]
-//        [HttpPost("refresh-token")]
-//        public async Task<IActionResult> RefreshToken()
-//        {
-//            var refreshToken = Request.Cookies["refreshToken"];
-//            if (refreshToken != null)
-//            {
-//                var response = await Service.AuthService.RefreshToken(refreshToken);
+            var token = await _authService.LoginAsync(req);
+            return Ok(token);
+        }
 
-//                if (response == null) return BadRequest("Invalid refresh token");
+        // ---------------- REFRESH TOKEN ----------------
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest req)
+        {
+            if (string.IsNullOrEmpty(req.RefreshToken))
+                return BadRequest("Missing refresh token.");
 
-//                return Ok(response);
-//            }
-//            else
-//            {
-//                return BadRequest("Invalid refresh token");
-//            }
-//        }
+            var newTokens = await _authService.RefreshTokenAsync(req);
+            return Ok(newTokens);
+        }
 
-//        [HttpPost("revoke-token")]
-//        public async Task<IActionResult> RevokeToken()
-//        {
-//            var refreshToken = Request.Cookies["refreshToken"];
-//            if (refreshToken != null)
-//            {
-//                await Service.AuthService.RevokeToken(refreshToken);
+        // ---------------- LOGOUT ----------------
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequest req)
+        {
+            if (string.IsNullOrEmpty(req.RefreshToken))
+                return BadRequest("Missing refresh token.");
 
-//                RemoveTokenCookie();
-
-//                return NoContent();
-//            }
-//            else
-//            {
-//                return BadRequest("Invalid refresh token");
-//            }
-//        }
-
-//        private void RemoveTokenCookie()
-//        {
-//            var cookieOptions = new CookieOptions
-//            {
-//                HttpOnly = true,
-//                Expires = DateTime.UtcNow.AddDays(-1),
-//                SameSite = SameSiteMode.None,
-//                Secure = true
-//            };
-//            Response.Cookies.Append("refreshToken", "", cookieOptions);
-//        }
-
-//        private void SetTokenCookie(string token)
-//        {
-//            var cookieOptions = new CookieOptions
-//            {
-//                HttpOnly = true,
-//                Expires = DateTime.UtcNow.AddYears(100),
-//                SameSite = SameSiteMode.None,
-//                Secure = true
-//            };
-//            Response.Cookies.Append("refreshToken", token, cookieOptions);
-//        }
-//    }
-//}
+            await _authService.LogoutAsync(req);
+            return Ok(new { message = "Logout successful" });
+        }
+    }
+}

@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Application.DTOs;
 using Application.Interfaces.Queries;
-using Application;
 
-namespace Infrastructure
+namespace Infrastructure.Queries
 {
     public class CategoryQueries : ICategoryQueries
     {
@@ -18,39 +17,29 @@ namespace Infrastructure
             _context = context;
         }
 
-        public async Task<IEnumerable<CategoryEntity>> GetAllCategoriesAsync()
+        public async Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync()
         {
-            return await _context.Categories.ToListAsync();
+            return await _context.Categories
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description
+                })
+                .ToListAsync();
         }
 
-        public async Task<CategoryEntity> GetCategoryByIdAsync(Guid id)
+        public async Task<CategoryDto?> GetCategoryByIdAsync(Guid id)
         {
-            var result = await _context.Categories.FindAsync(id);
-            return result;
-        }
-
-        public async Task<bool> CreateCategoryAsync(CategoryEntity entity)
-        {
-            entity.Id = Guid.NewGuid();
-            _context.Categories.Add(entity);
-            return await _context.SaveChangesAsync() > 0;
-        }
-
-        public async Task<bool> UpdateCategoryAsync(CategoryEntity entity)
-        {
-            _context.Categories.Update(entity);
-            return await _context.SaveChangesAsync() > 0;
-        }
-
-        public async Task<bool> DeleteCategoryAsync(Guid id)
-        {
-            var existing = await _context.Categories.FindAsync(id);
-            if (existing == null) return false;
-
-            _context.Categories.Remove(existing);
-            await _context.SaveChangesAsync();
-            return true;
+            return await _context.Categories
+                .Where(c => c.Id == id)
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description
+                })
+                .FirstOrDefaultAsync();
         }
     }
 }
-

@@ -11,30 +11,39 @@ using System.Threading.Tasks;
 namespace Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // => route: /api/products
+    [Route("api/[controller]")] // => /api/products
     public class ProductsController : ControllerBase
     {
         private readonly IProductService _productService;
+        private readonly IOrderService _orderService;
+        private readonly ICategoryService _categoryService;
 
-        public ProductsController(IProductService productService)
+        public ProductsController(
+            IProductService productService,
+            IOrderService orderService,
+            ICategoryService categoryService)
         {
             _productService = productService;
+            _orderService = orderService;
+            _categoryService = categoryService;
         }
 
         /// <summary>
-        /// Lấy tất cả sản phẩm (có phân trang, lọc, sort)
+        /// Lấy danh sách sản phẩm (có phân trang, lọc, sort)
         /// </summary>
-        // GET: /api/products
-        [HttpPost("Paging")]
+        // POST: /api/products/paging
+        [HttpPost("paging")]
         public async Task<ActionResult<PagedResult<ProductDto>>> GetPagedProducts([FromBody] ProductPagingRequestDto request)
         {
+            if (request == null)
+                return BadRequest("Request không hợp lệ.");
+
             var result = await _productService.GetPagedProductsAsync(request);
             return Ok(result);
         }
 
-
         /// <summary>
-        /// Lấy tất cả thương hiệu
+        /// Lấy tất cả thương hiệu (Brand)
         /// </summary>
         // GET: /api/products/brands
         [HttpGet("brands")]
@@ -45,15 +54,15 @@ namespace Api.Controllers
         }
 
         /// <summary>
-        /// Tìm kiếm sản phẩm theo điều kiện
+        /// Lấy tất cả danh mục (Category)
         /// </summary>
-        // POST: /api/products/search
-        //[HttpPost("search")]
-        //public async Task<ActionResult<List<ProductInfoDto>>> SearchProducts([FromBody] ProductSearchDto searchDto)
-        //{
-        //    var result = await _productService.GetAllProductAsync(searchDto);
-        //    return Ok(result);
-        //}
+        // GET: /api/products/categories
+        [HttpGet("categories")]
+        public async Task<ActionResult<List<CategoryInfoDto>>> GetAllCategories()
+        {
+            var result = await _categoryService.GetAllCategoriesAsync();
+            return Ok(result);
+        }
 
         /// <summary>
         /// Lấy sản phẩm theo ID
@@ -64,7 +73,8 @@ namespace Api.Controllers
         {
             var result = await _productService.GetProductByIdAsync(id);
             if (result == null)
-                return NotFound();
+                return NotFound(new { message = "Không tìm thấy sản phẩm." });
+
             return Ok(result);
         }
 
@@ -76,47 +86,45 @@ namespace Api.Controllers
         public async Task<ActionResult<bool>> CreateOrUpdateProduct([FromBody] CreateOrUpdateProductDto dto)
         {
             if (dto == null)
-                return BadRequest("Product data is required.");
+                return BadRequest("Dữ liệu sản phẩm không hợp lệ.");
 
             var result = await _productService.CreateOrUpdateProductAsync(dto);
             if (!result)
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error creating or updating product.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Lỗi khi tạo hoặc cập nhật sản phẩm.");
 
-            return Ok(result);
+            return Ok(new { success = true });
         }
 
         /// <summary>
-        /// Xóa sản phẩm
+        /// Xóa sản phẩm theo ID
         /// </summary>
         // DELETE: /api/products/{id}
         [HttpDelete("{id}")]
         public async Task<ActionResult<bool>> DeleteProduct(Guid id)
         {
             var result = await _productService.DeleteProductAsync(id);
-            if (!result) return NotFound();
-            return Ok(result);
+            if (!result)
+                return NotFound(new { message = "Không tìm thấy sản phẩm để xóa." });
+
+            return Ok(new { success = true });
         }
 
-        #region Liên quan tới Order
-
         /// <summary>
-        /// Checkout: xác nhận đơn hàng
+        /// Checkout: tạo đơn hàng từ giỏ hàng
         /// </summary>
         // POST: /api/products/checkout
         [HttpPost("checkout")]
-        public async Task<IActionResult> Checkout([FromBody] CreateOrderDto request, [FromServices] IOrderService orderService)
+        public async Task<IActionResult> Checkout([FromBody] CreateOrderRequest request)
         {
-            if (request == null || request.ProductIds == null || !request.ProductIds.Any())
-                return BadRequest("Giỏ hàng trống hoặc dữ liệu không hợp lệ");
+            if (request == null || request.Order?.ProductIds == null || !request.Order.ProductIds.Any())
+                return BadRequest("Giỏ hàng trống hoặc dữ liệu không hợp lệ.");
 
-            var result = await orderService.CreateOrderAsync(request);
+            var result = await _orderService.CreateOrderAsync(request.Order, request.Bill);
 
-            if (result)
-                return Ok(new { success = true, message = "Đặt hàng thành công" });
+            if (result != Guid.Empty)
+                return Ok(new { success = true, message = "Đặt hàng thành công", OrderId = result });
 
-            return StatusCode(500, "Có lỗi xảy ra khi tạo đơn hàng");
+            return StatusCode(500, new { success = false, message = "Có lỗi xảy ra khi tạo đơn hàng" });
         }
-
-        #endregion
     }
 }

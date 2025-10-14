@@ -1,14 +1,13 @@
-﻿using System.Threading.Tasks;
-using Application.DTOs;
-using Infrastructure; // để dùng UserEntity
+﻿using Application.DTOs;
+using static Application.DTOs.AuthDto;
 
 namespace Application.EntityHandler.Services
 {
     public interface IAuthService
     {
-        Task<AuthenticateResponseDto?> Login(string phoneNumber);
-        Task<AuthenticateResponseDto?> RefreshToken(string refreshToken);
-        Task RevokeToken(string refreshToken);
-        Task<UserEntity?> GetUserByPhoneNumber(string phoneNumber);
+        Task<string> RegisterAsync(RegisterRequest request);
+        Task<AuthResult> LoginAsync(LoginRequest request);
+        Task<AuthResult> RefreshTokenAsync(RefreshTokenRequest request);
+        Task LogoutAsync(LogoutRequest request);
     }
 }

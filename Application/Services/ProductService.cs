@@ -43,7 +43,6 @@ namespace Application.Services
             };
 
             var result = await _productQueries.GetAllProductsAsync(request);
-
             var products = result.Items;
 
             // Filter theo ProductId nếu có
@@ -77,8 +76,8 @@ namespace Application.Services
                 IsFeatured = entity.IsFeatured,
                 FeaturedType = entity.FeaturedType,
                 SalePercent = entity.SalePercent,
-                Brand = entity.Brand,
-                Category = entity.Category,
+              //  BrandId = entity.BrandId,
+             //   CategoryId = entity.CategoryId,
                 Detail = entity.Detail,
                 CreateAt = entity.CreateAt
             };
@@ -92,6 +91,7 @@ namespace Application.Services
             if (dto.Id == Guid.Empty) // CREATE
             {
                 var productEntitiesToAdd = new List<ProductEntity>();
+
                 for (int i = 0; i < dto.Stock; i++)
                 {
                     productEntitiesToAdd.Add(new ProductEntity
@@ -105,8 +105,8 @@ namespace Application.Services
                         FeaturedType = dto.FeaturedType,
                         SalePercent = dto.SalePercent,
                         Detail = dto.Detail,
-                        Brand = dto.Brand,
-                        Category = dto.Category,
+                        CategoryId = dto.CategoryId,   // ✅ dùng ID
+                        BrandId = dto.BrandId,         // ✅ dùng ID
                         CreateAt = DateTime.UtcNow,
                         UpdateAt = DateTime.UtcNow,
                         CreateBy = "admin",
@@ -130,6 +130,8 @@ namespace Application.Services
                 existing.FeaturedType = dto.FeaturedType;
                 existing.SalePercent = dto.SalePercent;
                 existing.Detail = dto.Detail;
+                existing.CategoryId = dto.CategoryId;   // ✅ dùng ID
+                existing.BrandId = dto.BrandId;         // ✅ dùng ID
                 existing.UpdateAt = DateTime.UtcNow;
                 existing.UpdateBy = "admin";
 

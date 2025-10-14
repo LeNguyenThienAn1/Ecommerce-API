@@ -14,11 +14,16 @@ namespace Api.Controllers
     {
         private readonly ICategoryService _categoryService;
         private readonly IProductService _productService;
+        private readonly IBrandService _brandService;
 
-        public AdminController(ICategoryService categoryService, IProductService productService)
+        public AdminController(
+            ICategoryService categoryService,
+            IProductService productService,
+            IBrandService brandService)
         {
             _categoryService = categoryService;
             _productService = productService;
+            _brandService = brandService;
         }
 
         // ================== CATEGORY ===================
@@ -36,9 +41,9 @@ namespace Api.Controllers
         /// <summary>
         /// Tìm kiếm danh mục theo filter
         /// </summary>
-        // POST: /api/admin/categories/search
-        [HttpPost("categories/search")]
-        public async Task<ActionResult<List<CategoryInfoDto>>> SearchCategories([FromBody] CategoryFilterDto filterDto)
+        // POST: /api/admin/categories/filter
+        [HttpPost("categories/filter")]
+        public async Task<ActionResult<List<CategoryInfoDto>>> FilterCategories([FromBody] CategoryFilterDto filterDto)
         {
             var result = await _categoryService.GetAllCategoriesAsync(filterDto);
             return Ok(result);
@@ -59,8 +64,8 @@ namespace Api.Controllers
         /// <summary>
         /// Tạo mới hoặc cập nhật danh mục
         /// </summary>
-        // POST: /api/admin/categories/createupdate
-        [HttpPost("categories/createupdate")]
+        // POST: /api/admin/categories
+        [HttpPost("categories")]
         public async Task<ActionResult<bool>> CreateOrUpdateCategory([FromBody] CreateOrUpdateCategoryDto dto)
         {
             if (dto == null) return BadRequest("Category data is required.");
@@ -86,27 +91,15 @@ namespace Api.Controllers
 
         // ================== PRODUCT ===================
         /// <summary>
-        /// Lấy tất cả sản phẩm trong admin (có phân trang, lọc, sort)
+        /// Lấy sản phẩm phân trang, lọc, sort
         /// </summary>
-        // GET: /api/admin/products
-        [HttpPost("Paging")]
+        // POST: /api/admin/products/paging
+        [HttpPost("products/paging")]
         public async Task<ActionResult<PagedResult<ProductDto>>> GetPagedProducts([FromBody] ProductPagingRequestDto request)
         {
             var result = await _productService.GetPagedProductsAsync(request);
             return Ok(result);
         }
-
-
-        /// <summary>
-        /// Tìm kiếm sản phẩm theo filter
-        /// </summary>
-        // POST: /api/admin/products/search
-        //[HttpPost("products/search")]
-        //public async Task<ActionResult<List<ProductInfoDto>>> SearchProducts([FromBody] ProductSearchDto dto)
-        //{
-        //    var result = await _productService.GetAllProductAsync(dto);
-        //    return Ok(result);
-        //}
 
         /// <summary>
         /// Lấy sản phẩm theo ID
@@ -123,8 +116,8 @@ namespace Api.Controllers
         /// <summary>
         /// Tạo mới hoặc cập nhật sản phẩm
         /// </summary>
-        // POST: /api/admin/products/createupdate
-        [HttpPost("products/createupdate")]
+        // POST: /api/admin/products
+        [HttpPost("products")]
         public async Task<ActionResult<bool>> CreateOrUpdateProduct([FromBody] CreateOrUpdateProductDto dto)
         {
             if (dto == null) return BadRequest("Product data is required.");
@@ -144,6 +137,69 @@ namespace Api.Controllers
         public async Task<ActionResult<bool>> DeleteProduct(Guid id)
         {
             var result = await _productService.DeleteProductAsync(id);
+            if (!result) return NotFound();
+            return Ok(result);
+        }
+
+        // ================== BRAND ===================
+        /// <summary>
+        /// Lấy tất cả thương hiệu
+        /// </summary>
+        // GET: /api/admin/brands
+        [HttpGet("brands")]
+        public async Task<ActionResult<List<BrandDto>>> GetBrands()
+        {
+            var result = await _brandService.GetAllBrandsAsync();
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Lọc thương hiệu theo điều kiện
+        /// </summary>
+        // POST: /api/admin/brands/filter
+        [HttpPost("brands/filter")]
+        public async Task<ActionResult<List<BrandDto>>> FilterBrands([FromBody] BrandFilterDto filter)
+        {
+            var result = await _brandService.GetAllBrandsAsync(filter);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Lấy thương hiệu theo ID
+        /// </summary>
+        // GET: /api/admin/brands/{id}
+        [HttpGet("brands/{id}")]
+        public async Task<ActionResult<BrandDto>> GetBrandById(Guid id)
+        {
+            var brand = await _brandService.GetBrandByIdAsync(id);
+            if (brand == null) return NotFound();
+            return Ok(brand);
+        }
+
+        /// <summary>
+        /// Tạo mới hoặc cập nhật thương hiệu
+        /// </summary>
+        // POST: /api/admin/brands
+        [HttpPost("brands")]
+        public async Task<ActionResult<bool>> CreateOrUpdateBrand([FromBody] CreateOrUpdateBrandDto dto)
+        {
+            if (dto == null) return BadRequest("Brand data is required.");
+
+            var result = await _brandService.CreateOrUpdateBrandAsync(dto);
+            if (!result)
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error creating or updating brand.");
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Xóa thương hiệu
+        /// </summary>
+        // DELETE: /api/admin/brands/{id}
+        [HttpDelete("brands/{id}")]
+        public async Task<ActionResult<bool>> DeleteBrand(Guid id)
+        {
+            var result = await _brandService.DeleteBrandAsync(id);
             if (!result) return NotFound();
             return Ok(result);
         }
