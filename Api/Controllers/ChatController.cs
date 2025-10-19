@@ -1,6 +1,7 @@
 ﻿using Application.DTOs;
 using EntityHandler.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api.Controllers
 {
@@ -15,10 +16,13 @@ namespace Api.Controllers
             _chatService = chatService;
         }
 
+        // 💬 Cho phép tất cả người dùng (kể cả chưa đăng nhập)
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Chat([FromBody] ChatRequestDto request)
         {
-            var response = await _chatService.ProcessUserMessageAsync(request);
+            // Truyền Guid.Empty nếu người dùng chưa đăng nhập
+            var response = await _chatService.ProcessUserMessageAsync(request, Guid.Empty);
             return Ok(response);
         }
     }

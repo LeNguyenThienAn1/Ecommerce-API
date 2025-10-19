@@ -19,9 +19,26 @@ namespace Infrastructure
         public DbSet<OrderDetailEntity> OrderDetails { get; set; }
         public DbSet<UserEntity> Users { get; set; }
         public DbSet<WishlistEntity> Wishlists { get; set; }
+        public DbSet<ChatMessageEntity> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<ChatMessageEntity>(entity =>
+            {
+                entity.ToTable("ChatMessages");
+                entity.HasKey(m => m.Id);
+
+                entity.HasOne(m => m.Sender)
+                    .WithMany()
+                    .HasForeignKey(m => m.SenderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(m => m.Receiver)
+                    .WithMany()
+                    .HasForeignKey(m => m.ReceiverId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             base.OnModelCreating(modelBuilder);
 
             // ========== PRODUCT ==========

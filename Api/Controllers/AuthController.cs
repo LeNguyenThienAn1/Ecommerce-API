@@ -38,6 +38,17 @@ namespace Api.Controllers
             return Ok(token);
         }
 
+        // ---------------- ADMIN LOGIN ----------------
+        [HttpPost("admin/login")]
+        public async Task<IActionResult> AdminLogin([FromBody] LoginRequest req)
+        {
+            if (req == null)
+                return BadRequest("Invalid request.");
+
+            var token = await _authService.LoginAdminAsync(req);
+            return Ok(token);
+        }
+
         // ---------------- REFRESH TOKEN ----------------
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest req)

@@ -86,6 +86,29 @@ namespace Application.EntityHandler.Services.Implementations
             return tokens;
         }
 
+        // --------------------- ĐĂNG NHẬP ADMIN ---------------------
+        public async Task<AuthResult> LoginAdminAsync(LoginRequest request)
+        {
+            request.PhoneNumber = NormalizePhone(request.PhoneNumber);
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+            if (user == null)
+                throw new Exception("Tài khoản không tồn tại.");
+
+            if (user.Role != UserType.Admin)
+                throw new Exception("Tài khoản không có quyền truy cập.");
+
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+                throw new Exception("Sai mật khẩu.");
+
+            var tokens = GenerateJwtTokens(user);
+
+            user.RefreshToken = tokens.RefreshToken;
+            await _db.SaveChangesAsync();
+
+            return tokens;
+        }
+
         // --------------------- LÀM MỚI TOKEN ---------------------
         public async Task<AuthResult> RefreshTokenAsync(RefreshTokenRequest request)
         {
