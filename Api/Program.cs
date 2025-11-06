@@ -154,7 +154,9 @@ app.UseHttpsRedirection();
 // ✅ Bật CORS ngay trước Authorization
 app.UseCors("AllowFrontend");
 
+app.UseAuthentication();
 app.UseAuthorization();
+
 
 app.MapControllers();
 

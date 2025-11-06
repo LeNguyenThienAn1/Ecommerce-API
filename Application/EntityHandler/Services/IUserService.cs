@@ -35,5 +35,9 @@ namespace Application.Interfaces.Services
         /// Vô hiệu hóa người dùng (tắt IsActive = false).
         /// </summary>
         Task<bool> DeactivateUserAsync(Guid id);
+
+        Task<IEnumerable<UserDto>> GetAllUsersAsync();
+        Task<UserDto?> GetUserByIdAsync(Guid id);
+        Task<UserDto> CreateOrUpdateUserAsync(UserDto userDto);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using Application.DTOs;
+using Application.EntityHandler.Services;
 using Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -15,17 +17,22 @@ namespace Api.Controllers
         private readonly ICategoryService _categoryService;
         private readonly IProductService _productService;
         private readonly IBrandService _brandService;
+        private readonly IOrderService _orderService;
+        private readonly IUserService _userService;
 
         public AdminController(
             ICategoryService categoryService,
             IProductService productService,
-            IBrandService brandService)
+            IBrandService brandService,
+            IOrderService orderService,
+            IUserService userService)
         {
             _categoryService = categoryService;
             _productService = productService;
             _brandService = brandService;
+            _orderService = orderService;
+            _userService = userService;
         }
-
         // ================== CATEGORY ===================
         /// <summary>
         /// Lấy tất cả danh mục
@@ -201,6 +208,92 @@ namespace Api.Controllers
         {
             var result = await _brandService.DeleteBrandAsync(id);
             if (!result) return NotFound();
+            return Ok(result);
+        }
+
+        // ================== ORDER ===================
+        /// <summary>
+        /// Cập nhật trạng thái đơn hàng
+        /// </summary>
+        // PUT: /api/admin/orders/{id}/status
+        [HttpPut("orders/{id}/status")]
+      //  [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusDto dto)
+        { 
+            if (dto == null)
+            {
+                return BadRequest("Status data is required.");
+            }
+
+            var result = await _orderService.UpdateOrderStatusAsync(id, dto.Status);
+
+            if (!result)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
+
+        // ================== USER ===================
+        /// <summary>
+        /// Lấy tất cả người dùng
+        /// </summary>
+        // GET: /api/admin/users
+        [HttpGet("users")]
+      //  [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
+        {
+            var users = await _userService.GetAllUsersAsync();
+            return Ok(users);
+        }
+
+        /// <summary>
+        /// Lấy người dùng theo ID
+        /// </summary>
+        // GET: /api/admin/users/{id}
+        [HttpGet("users/{id}")]
+      //  [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserDto>> GetUserById(Guid id)
+        {
+            var user = await _userService.GetUserByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            return Ok(user);
+        }
+
+        /// <summary>
+        /// Tạo mới hoặc cập nhật người dùng
+        /// </summary>
+        // POST: /api/admin/users
+        [HttpPost("users")]
+       // [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserDto>> CreateOrUpdateUser([FromBody] UserDto userDto)
+        {
+            if (userDto == null)
+            {
+                return BadRequest("User data is required.");
+            }
+
+            var result = await _userService.CreateOrUpdateUserAsync(userDto);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Xóa người dùng
+        /// </summary>
+        // DELETE: /api/admin/users/{id}
+        [HttpDelete("users/{id}")]
+    //    [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUser(Guid id)
+        {
+            var result = await _userService.DeleteUserAsync(id);
+            if (!result)
+            {
+                return NotFound();
+            }
             return Ok(result);
         }
     }

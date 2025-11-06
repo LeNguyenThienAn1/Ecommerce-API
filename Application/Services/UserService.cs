@@ -1,4 +1,5 @@
 ﻿using Application.DTOs;
+using Application.EntityHandler.Queries;
 using Application.Interfaces.Services;
 using Infrastructure;
 using Infrastructure.Entity; // Nếu UserEntity nằm trong namespace này
@@ -11,10 +12,12 @@ namespace Application.Services
     public class UserService : IUserService
     {
         private readonly EcommerceDbContext _context;
+        private readonly IUserQueries _userQueries;
 
-        public UserService(EcommerceDbContext context)
+        public UserService(EcommerceDbContext context, IUserQueries userQueries)
         {
             _context = context;
+            _userQueries = userQueries;
         }
 
         // 🟩 CREATE
@@ -138,6 +141,30 @@ namespace Application.Services
         public async Task<bool> DeactivateUserAsync(Guid id)
         {
             return await ChangeUserStatusAsync(id, false);
+        }
+
+        public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
+        {
+            return await _userQueries.GetAllUsersAsync();
+        }
+
+        public async Task<UserDto?> GetUserByIdAsync(Guid id)
+        {
+            return await _userQueries.GetUserByIdAsync(id);
+        }
+
+        public async Task<UserDto> CreateOrUpdateUserAsync(UserDto userDto)
+        {
+            if (userDto.Id != Guid.Empty)
+            {
+                // Update
+                return await UpdateUserAsync(userDto);
+            }
+            else
+            {
+                // Create
+                return await CreateUserAsync(userDto);
+            }
         }
 
         // 🧩 Helper mapping

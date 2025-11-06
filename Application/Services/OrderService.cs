@@ -167,8 +167,24 @@ public class OrderService : IOrderService
         // Không cập nhật OrderDate vì đó là ngày tạo đơn
 
         _dbContext.Orders.Update(order);
-        await _dbContext.SaveChangesAsync();
-
-        return true;
-    }
-}
+                await _dbContext.SaveChangesAsync();
+        
+                return true;
+            }
+        
+            public async Task<bool> UpdateOrderStatusAsync(Guid orderId, OrderStatus status)
+            {
+                var order = await _dbContext.Orders.FindAsync(orderId);
+                if (order == null)
+                {
+                    return false;
+                }
+        
+                order.Status = status;
+                _dbContext.Orders.Update(order);
+                await _dbContext.SaveChangesAsync();
+        
+                return true;
+            }
+        }
+        

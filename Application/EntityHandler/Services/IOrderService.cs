@@ -1,4 +1,5 @@
 ﻿using Application.DTOs;
+using Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -46,6 +47,7 @@ namespace Application.EntityHandler.Services
         /// </summary>
         Task<IEnumerable<OrderDto>> GetOrdersByUserAsync(Guid userId);
         Task<bool> ConfirmPaymentSuccessAsync(Guid orderId, Guid userId);
+        Task<bool> UpdateOrderStatusAsync(Guid orderId, OrderStatus status);
 
     }
 }
