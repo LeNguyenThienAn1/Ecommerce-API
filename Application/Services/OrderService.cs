@@ -48,8 +48,9 @@ public class OrderService : IOrderService
             Note = billInfo.Note,
             Status = OrderStatus.Created, // Trạng thái ban đầu
             Details = new List<OrderDetailEntity>(),
-            CreateBy = dto.BoughtBy.ToString(),
-            UpdateBy = dto.BoughtBy.ToString()
+            CreateBy = dto.BoughtBy,
+            UpdateBy = dto.BoughtBy,
+            UserId = dto.BoughtBy
         };
 
         decimal totalAmount = 0;
@@ -147,7 +148,7 @@ public class OrderService : IOrderService
     /// <summary>
     /// Xác nhận thanh toán MoMo thành công (được gọi từ IPN callback)
     /// </summary>
-    public async Task<bool> ConfirmPaymentSuccessAsync(Guid orderId)
+    public async Task<bool> ConfirmPaymentSuccessAsync(Guid orderId, Guid userId)
     {
         var order = await _dbContext.Orders
             .Include(o => o.Details)
@@ -162,7 +163,7 @@ public class OrderService : IOrderService
 
         // ✅ Cập nhật trạng thái đơn hàng thành công
         order.Status = OrderStatus.Successfully;
-        order.UpdateBy = "MoMo_IPN"; // Đánh dấu được cập nhật từ callback
+        order.UpdateBy = userId; // Đánh dấu được cập nhật từ callback
         // Không cập nhật OrderDate vì đó là ngày tạo đơn
 
         _dbContext.Orders.Update(order);

@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//using System;
+//using Infrastructure.Entity;
 
-namespace Infrastructure.Entity
-{
-    public class WishlistEntity : BaseEntity
-    {
-        public int UserId { get; set; }
-        public int ProductId { get; set; }
+//namespace Infrastructure.Entity
+//{
+//    public class WishlistEntity : BaseEntity
+//    {
+//        public Guid UserId { get; set; }
+//        public Guid ProductId { get; set; }
 
-        // Quan hệ
-        public UserEntity User { get; set; }
-        public ProductEntity Product { get; set; }
-    }
-}
+//        // Quan hệ rõ ràng
+//        public virtual UserEntity User { get; set; }
+//        public virtual ProductEntity Product { get; set; }
+//    }
+//}

@@ -45,7 +45,7 @@ namespace Application.EntityHandler.Services
         /// Lấy danh sách đơn hàng theo UserId (lịch sử mua hàng)
         /// </summary>
         Task<IEnumerable<OrderDto>> GetOrdersByUserAsync(Guid userId);
-        Task<bool> ConfirmPaymentSuccessAsync(Guid orderId);
+        Task<bool> ConfirmPaymentSuccessAsync(Guid orderId, Guid userId);
 
     }
 }

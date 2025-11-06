@@ -100,7 +100,7 @@ namespace Api.Controllers
                 }
 
                 // Cập nhật trạng thái Order thành công (Trừ sản phẩm)
-                var updated = await _orderService.ConfirmPaymentSuccessAsync(orderId);
+                var updated = await _orderService.ConfirmPaymentSuccessAsync(orderId, ipn.UserId);
 
                 if (updated)
                 {
@@ -135,32 +135,27 @@ namespace Api.Controllers
         [HttpPost("confirm-frontend")]
         public async Task<IActionResult> ConfirmPaymentFromFrontend([FromBody] MomoFrontendConfirmDto dto)
         {
-            // 1. Kiểm tra mã thành công
             if (dto.ResultCode != 0)
-            {
                 return BadRequest(new { message = $"Thanh toán thất bại. Mã lỗi: {dto.ResultCode}" });
-            }
 
-            // 2. Parse OrderId
             if (string.IsNullOrEmpty(dto.OrderId) || !Guid.TryParse(dto.OrderId, out var orderId))
-            {
                 return BadRequest(new { message = "OrderId không hợp lệ" });
-            }
 
-            // 3. Gọi OrderService để cập nhật trạng thái đơn hàng (trừ sản phẩm)
-            var updated = await _orderService.ConfirmPaymentSuccessAsync(orderId);
+            // ✅ Lấy userId từ dto
+            var userId = dto.UserId;
+
+            // ✅ Gọi service
+            var updated = await _orderService.ConfirmPaymentSuccessAsync(orderId, userId);
 
             if (updated)
             {
                 Console.WriteLine($"[FE Confirm] ✅ Order {orderId} confirmed successfully by Frontend call.");
                 return Ok(new { orderId = orderId, message = "Xác nhận thanh toán thành công từ Frontend" });
             }
-            else
-            {
-                // Trả về lỗi nếu đơn hàng đã được cập nhật hoặc không tìm thấy
-                return BadRequest(new { message = "Không thể cập nhật trạng thái đơn hàng (đã được cập nhật hoặc không hợp lệ)." });
-            }
+
+            return BadRequest(new { message = "Không thể cập nhật trạng thái đơn hàng (đã được cập nhật hoặc không hợp lệ)." });
         }
+
 
         // --- ENDPOINT XỬ LÝ REDIRECT GIỮ NGUYÊN ---
 

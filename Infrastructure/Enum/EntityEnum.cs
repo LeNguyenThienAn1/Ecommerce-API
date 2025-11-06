@@ -48,6 +48,7 @@ namespace Infrastructure
         Rejected = 3,
         FailedShipping = 4,
         Successfully = 5,
+        Paid = 6,
     }
     public enum CartStatus
     {

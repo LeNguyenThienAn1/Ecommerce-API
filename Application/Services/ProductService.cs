@@ -109,8 +109,7 @@ namespace Application.Services
                         BrandId = dto.BrandId,         // ✅ dùng ID
                         CreateAt = DateTime.UtcNow,
                         UpdateAt = DateTime.UtcNow,
-                        CreateBy = "admin",
-                        UpdateBy = "admin",
+                        CreateBy = dto.UserId,
                         Status = ProductStatus.Available
                     });
                 }
@@ -133,7 +132,7 @@ namespace Application.Services
                 existing.CategoryId = dto.CategoryId;   // ✅ dùng ID
                 existing.BrandId = dto.BrandId;         // ✅ dùng ID
                 existing.UpdateAt = DateTime.UtcNow;
-                existing.UpdateBy = "admin";
+                existing.UpdateBy = dto.UserId;
 
                 return await _productQueries.UpdateProductAsync(existing);
             }

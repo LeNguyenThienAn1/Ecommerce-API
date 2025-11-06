@@ -12,8 +12,16 @@ namespace EntityHandler.Queries.Interface
         /// <summary>
         /// Tìm kiếm danh sách sản phẩm theo từ khóa người dùng nhập vào.
         /// </summary>
-        /// <param name="keyword">Từ khóa cần tìm (ví dụ: "áo thun", "giày").</param>
+        /// <param name="keyword">Từ khóa cần tìm.</param>
         /// <returns>Danh sách ProductDto phù hợp.</returns>
         Task<List<ProductDto>> SearchProductsAsync(string keyword);
+
+        /// <summary>
+        /// [NÂNG CẤP] Đếm tổng số lượng sản phẩm khớp với từ khóa tìm kiếm.
+        /// Dùng để hỗ trợ logic kiểm tra tồn kho.
+        /// </summary>
+        /// <param name="keyword">Từ khóa cần đếm số lượng.</param>
+        /// <returns>Tổng số sản phẩm tìm thấy.</returns>
+        Task<int> GetProductCountAsync(string keyword);
     }
 }

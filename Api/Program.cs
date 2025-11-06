@@ -21,6 +21,7 @@ using Application.Queries;
 using Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Infrastructure.EntityHandler.Services.Implementations;
 
 // ======================= Khởi tạo WebApplication =======================
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,7 @@ builder.Services.AddDbContext<EcommerceDbContext>(options =>
 // ======================= Đăng ký toàn bộ service trong Application =======================
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+builder.Services.AddScoped<IStripeService, StripeService>();
 builder.Services.AddHttpClient<IMomoService, MomoService>();
 
 builder.Services.AddLogging();
@@ -59,8 +61,8 @@ builder.Services.AddScoped<IRealTimeChatService, RealTimeChatService>();
 builder.Services.AddScoped<IFeaturedProductService, FeaturedProductService>();
 builder.Services.AddScoped<IFeaturedProductQueries, FeaturedProductQueries>();
 
-builder.Services.AddScoped<IWishlistService, WishlistService>();
-builder.Services.AddScoped<IWishlistQueries, WishlistQueries>();
+//builder.Services.AddScoped<IWishlistService, WishlistService>();
+//builder.Services.AddScoped<IWishlistQueries, WishlistQueries>();
 
 builder.Services.AddScoped<IOrderService, OrderService>();
 

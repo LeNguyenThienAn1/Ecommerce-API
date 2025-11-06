@@ -11,13 +11,16 @@ namespace Application.DTOs
             public string Name { get; set; }
             public string Description { get; set; }
         }
-        public class CreateOrUpdateCategoryDto
+        public class CreateOrUpdateCategoryDto : CommonPayloadDto
         {
             public Guid Id { get; set; }
             public string Name { get; set; }
             public string Description { get; set; }
-        }
-        public class CategoryFilterDto
+        public Guid? CreateBy { get; set; }
+        public Guid? UpdateBy { get; set; }
+
+    }
+    public class CategoryFilterDto : CommonPayloadDto
         {
             public Guid? CategoryId { get; set; } // Id của Category
             public string CategoryName { get; set; }

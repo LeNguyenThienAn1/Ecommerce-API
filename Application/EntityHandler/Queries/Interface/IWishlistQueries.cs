@@ -1,14 +1,12 @@
-﻿using Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//using Application.DTOs;
+//using System;
+//using System.Collections.Generic;
+//using System.Threading.Tasks;
 
-namespace Application.EntityHandler.Queries.Interface
-{
-    public interface IWishlistQueries
-    {
-        Task<IEnumerable<WishlistDto>> GetWishlistByUserAsync(int userId);
-    }
-}
+//namespace Application.EntityHandler.Queries.Interface
+//{
+//    public interface IWishlistQueries
+//    {
+//        Task<IEnumerable<WishlistDto>> GetWishlistByUserAsync(Guid userId);
+//    }
+//}

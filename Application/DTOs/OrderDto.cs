@@ -54,7 +54,7 @@ namespace Application.DTOs
         public string Signature { get; set; }
     }
 
-    public class MomoIPNResponseDto
+    public class MomoIPNResponseDto : CommonPayloadDto
     {
         public string PartnerCode { get; set; }
         public string OrderId { get; set; }
@@ -70,7 +70,7 @@ namespace Application.DTOs
         public string ExtraData { get; set; }
         public string Signature { get; set; }
     }
-    public class MomoFrontendConfirmDto
+    public class MomoFrontendConfirmDto : CommonPayloadDto
     {
         // Chứa OrderId nhận được từ URL MoMo redirect
         public string OrderId { get; set; }
@@ -78,4 +78,13 @@ namespace Application.DTOs
         // Chứa resultCode (ví dụ: 0) nhận được từ URL MoMo redirect
         public int ResultCode { get; set; }
     }
+    public class StripePaymentDto
+    {
+        public Guid OrderId { get; set; }
+        public string Currency { get; set; } = "usd"; // đơn vị tiền
+        public long Amount { get; set; }              // 1000 = $10.00
+        public string SuccessUrl { get; set; }        // frontend redirect sau khi thanh toán thành công
+        public string CancelUrl { get; set; }         // frontend redirect nếu hủy
+    }
+
 }

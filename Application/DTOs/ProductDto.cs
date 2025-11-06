@@ -34,7 +34,7 @@ namespace Application.DTOs
     /// <summary>
     /// DTO dùng để nhận dữ liệu từ FE khi tạo hoặc cập nhật sản phẩm
     /// </summary>
-    public class CreateOrUpdateProductDto
+    public class CreateOrUpdateProductDto : CommonPayloadDto
     {
         public Guid Id { get; set; }  // khi tạo mới => Guid.Empty, khi update => truyền Id
         public string Name { get; set; }

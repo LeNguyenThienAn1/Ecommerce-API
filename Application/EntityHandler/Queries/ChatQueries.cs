@@ -23,56 +23,36 @@ namespace EntityHandler.Queries
             if (string.IsNullOrWhiteSpace(keyword))
                 return new List<ProductDto>();
 
-            // 1. CHIA TỪ KHÓA THÀNH TỪ RIÊNG LẺ
-            // Ví dụ: "điện thoại samsung mới nhất" -> ["điện thoại", "samsung", "mới", "nhất"]
+            // 1. Chuẩn hóa và Tách từ khóa (Thực thi trên RAM, dùng ToLowerInvariant an toàn)
             var searchTerms = keyword.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                                      .Select(t => t.Trim().ToLowerInvariant())
+                                     .Where(t => t.Length >= 2) // Lọc từ quá ngắn
                                      .ToList();
 
-            // Nếu không có từ khóa nào, trả về rỗng
             if (!searchTerms.Any())
             {
                 return new List<ProductDto>();
             }
 
-            // Bắt đầu truy vấn
+            // 2. Xây dựng Truy vấn TỐI ƯU HÓA (OR Logic)
             var query = _context.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .AsNoTracking()
-                .AsQueryable(); // Khởi tạo IQueryable
-
-            // 2. TẠO ĐIỀU KIỆN WHERE ĐỘNG (OR logic)
-            // Tìm kiếm sản phẩm mà tên, mô tả, thương hiệu, HOẶC danh mục khớp với BẤT KỲ từ khóa nào
-            foreach (var term in searchTerms)
-            {
-                // Thêm điều kiện OR: p.Name LIKE %term% HOẶC p.Description LIKE %term%
-                query = query.Where(p =>
-                    EF.Functions.Like(p.Name.ToLower(), $"%{term}%") ||
-                    EF.Functions.Like(p.Description.ToLower(), $"%{term}%") ||
-                    EF.Functions.Like(p.Brand.Name.ToLower(), $"%{term}%") ||
-                    EF.Functions.Like(p.Category.Name.ToLower(), $"%{term}%")
-                );
-            }
-            // 🛑 LƯU Ý: Logic trên sử dụng toán tử AND giữa các từ (ví dụ: tìm cả "điện thoại" AND "samsung").
-            // Để tìm sản phẩm khớp với BẤT KỲ từ nào (OR logic), ta phải dùng PredicateBuilder hoặc Where (p => true)
-            // hoặc dùng cách đơn giản hóa sau đây:
-
-            // Cách đơn giản hơn: Kiểm tra xem TÊN có chứa BẤT KỲ từ khóa nào KHÔNG
-            query = _context.Products
-                .Include(p => p.Brand)
-                .Include(p => p.Category)
-                .AsNoTracking()
                 .Where(p => searchTerms.Any(term =>
+                    // SỬA LỖI: Sử dụng .ToLower() thay cho .ToLowerInvariant() để EF Core dịch sang SQL
                     p.Name.ToLower().Contains(term) ||
                     p.Description.ToLower().Contains(term) ||
                     p.Brand.Name.ToLower().Contains(term) ||
                     p.Category.Name.ToLower().Contains(term)
                 ));
 
+            // 3. Thực hiện truy vấn, ưu tiên sản phẩm có tên khớp với từ khóa gốc
+            var normalizedKeyword = keyword.ToLower();
 
-            // 3. Thực hiện truy vấn và mapping sang DTO
             return await query
+                .OrderByDescending(p => p.Name.ToLower().Contains(normalizedKeyword)) // Ưu tiên tên khớp
+                .ThenByDescending(p => p.Price) // Sắp xếp phụ (giá cao trước)
                 .Select(p => new ProductDto
                 {
                     Id = p.Id,
@@ -87,5 +67,30 @@ namespace EntityHandler.Queries
                 .Take(10)
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// Đếm tổng số lượng sản phẩm khớp với từ khóa tìm kiếm.
+        /// </summary>
+        public async Task<int> GetProductCountAsync(string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword)) return 0;
+
+            // Chuẩn hóa trên RAM, dùng ToLowerInvariant an toàn
+            var searchTerms = keyword.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                     .Select(t => t.Trim().ToLowerInvariant())
+                                     .Where(t => t.Length >= 2)
+                                     .ToList();
+
+            if (!searchTerms.Any()) return 0;
+
+            return await _context.Products
+                .AsNoTracking()
+                .CountAsync(p => searchTerms.Any(term =>
+                    // SỬA LỖI: Sử dụng .ToLower() thay cho .ToLowerInvariant() để EF Core dịch sang SQL
+                    p.Name.ToLower().Contains(term) ||
+                    p.Brand.Name.ToLower().Contains(term) ||
+                    p.Category.Name.ToLower().Contains(term)
+                ));
+        }
     }
-}
+}   

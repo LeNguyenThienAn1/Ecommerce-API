@@ -78,28 +78,42 @@ namespace Application.Services
             if (string.IsNullOrWhiteSpace(dto.Name))
                 throw new ArgumentException("Tên thương hiệu không được để trống.");
 
+            // 🧩 Kiểm tra UserId
+            if (dto.CreatedBy == Guid.Empty && dto.UpdatedBy == Guid.Empty)
+                throw new ArgumentException("Thiếu thông tin UserId người thực hiện.");
+
             if (dto.Id == Guid.Empty)
             {
+                // 🆕 CREATE
                 var entity = new BrandEntity
                 {
                     Id = Guid.NewGuid(),
-                    Name = dto.Name,
-                    LogoUrl = dto.LogoUrl
+                    Name = dto.Name.Trim(),
+                    LogoUrl = dto.LogoUrl?.Trim(),
+                    CreateBy = dto.UserId,
+                    UpdateBy = dto.UserId,
+                    CreateAt = DateTime.UtcNow
                 };
-                _context.Brands.Add(entity);
+
+                await _context.Brands.AddAsync(entity);
             }
             else
             {
+                // ✏️ UPDATE
                 var entity = await _context.Brands.FindAsync(dto.Id);
                 if (entity == null) return false;
 
-                entity.Name = dto.Name;
-                entity.LogoUrl = dto.LogoUrl;
+                entity.Name = dto.Name.Trim();
+                entity.LogoUrl = dto.LogoUrl?.Trim();
+                entity.UpdateBy = dto.UserId;
+                entity.UpdateAt = DateTime.UtcNow;
+
                 _context.Brands.Update(entity);
             }
 
             return await _context.SaveChangesAsync() > 0;
         }
+
 
         // Delete
         public async Task<bool> DeleteBrandAsync(Guid id)

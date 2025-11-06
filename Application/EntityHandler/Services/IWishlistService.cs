@@ -1,16 +1,14 @@
-﻿using Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//using Application.DTOs;
+//using System;
+//using System.Collections.Generic;
+//using System.Threading.Tasks;
 
-namespace Application.EntityHandler.Services
-{
-    public interface IWishlistService
-    {
-        Task<IEnumerable<WishlistDto>> GetWishlistByUserAsync(int userId);
-        Task AddToWishlistAsync(int userId, int productId);
-        Task RemoveFromWishlistAsync(int userId, int productId);
-    }
-}
+//namespace Application.EntityHandler.Services
+//{
+//    public interface IWishlistService
+//    {
+//        Task<IEnumerable<WishlistDto>> GetWishlistByUserAsync(Guid userId);
+//        Task<bool> AddToWishlistAsync(Guid userId, Guid productId);
+//        Task<bool> RemoveFromWishlistAsync(Guid userId, Guid productId);
+//    }
+//}

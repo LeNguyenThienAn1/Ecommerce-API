@@ -83,6 +83,10 @@ namespace Application.Services
             if (string.IsNullOrWhiteSpace(dto.Name))
                 throw new ArgumentException("Tên danh mục không được để trống.");
 
+            // 🧩 Kiểm tra userId
+            if (dto.UpdateBy == Guid.Empty && dto.CreateBy == Guid.Empty)
+                throw new ArgumentException("Thiếu thông tin UserId người thực hiện.");
+
             if (dto.Id == Guid.Empty)
             {
                 // 🆕 CREATE
@@ -91,6 +95,8 @@ namespace Application.Services
                     Id = Guid.NewGuid(),
                     Name = dto.Name.Trim(),
                     Description = dto.Description?.Trim(),
+                    CreateBy = dto.UserId, // ✅ Gán người tạo
+                    UpdateBy = dto.UserId,
                 };
 
                 await _context.Categories.AddAsync(entity);
@@ -103,12 +109,15 @@ namespace Application.Services
 
                 entity.Name = dto.Name.Trim();
                 entity.Description = dto.Description?.Trim();
+                entity.UpdateAt = DateTime.UtcNow;
+                entity.UpdateBy = dto.UserId;// ✅ Gán người cập nhật
 
                 _context.Categories.Update(entity);
             }
 
             return await _context.SaveChangesAsync() > 0;
         }
+
 
         // ====================== Xóa danh mục ======================
         public async Task<bool> DeleteCategoryAsync(Guid id)

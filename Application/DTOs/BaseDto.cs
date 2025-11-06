@@ -11,8 +11,8 @@ namespace Application.DTOs
         public Guid Id { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime UpdateAt { get; set; } = DateTime.Now;
-        public string? CreateBy { get; set; }
-        public string? UpdateBy { get; set; }
+        public Guid CreateBy { get; set; }
+        public Guid UpdateBy { get; set; }
     }
     public class PagedResultDto<T>
     {
@@ -28,6 +28,10 @@ namespace Application.DTOs
             Items = items;
             TotalCount = totalCount;
         }
+    }
+    public class CommonPayloadDto
+    {
+        public Guid UserId { get; set; }
     }
 
 }

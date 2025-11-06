@@ -24,6 +24,11 @@ namespace Application.Services
             if (dto == null) throw new ArgumentNullException(nameof(dto));
             if (string.IsNullOrWhiteSpace(dto.Message)) throw new ArgumentException("Message cannot be empty");
 
+            // Ki?m tra receiver t?n t?i
+            var receiver = await _context.Users.FindAsync(dto.ReceiverId);
+            if (receiver == null)
+                throw new Exception("Ng??i nh?n không t?n t?i.");
+
             var message = new ChatMessageEntity
             {
                 SenderId = senderId,
@@ -36,7 +41,7 @@ namespace Application.Services
             _context.ChatMessages.Add(message);
             await _context.SaveChangesAsync();
 
-            // Reload to include user nav props (optional)
+            // Load navigation props
             await _context.Entry(message).Reference(m => m.Sender).LoadAsync();
             await _context.Entry(message).Reference(m => m.Receiver).LoadAsync();
 
@@ -52,6 +57,7 @@ namespace Application.Services
                 ReceiverName = message.Receiver?.Name
             };
         }
+
 
         public async Task MarkAsReadAsync(Guid ownerUserId, Guid messageId)
         {

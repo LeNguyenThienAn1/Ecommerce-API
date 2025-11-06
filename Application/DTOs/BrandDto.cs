@@ -25,10 +25,12 @@ namespace Application.DTOs
         public string? Keyword { get; set; }
     }
 
-    public class CreateOrUpdateBrandDto
+    public class CreateOrUpdateBrandDto : CommonPayloadDto
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? LogoUrl { get; set; }
+        public Guid? CreatedBy { get; set; }
+        public Guid? UpdatedBy { get; set; }
     }
 }

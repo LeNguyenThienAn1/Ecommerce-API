@@ -1,6 +1,10 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Application.DTOs;
 using EntityHandler.Queries.Interface;
 using EntityHandler.Services.Interface;
@@ -15,25 +19,56 @@ namespace EntityHandler.Services
         private readonly IChatQueries _chatQueries;
         private readonly ILogger<ChatService> _logger;
         private readonly string _geminiApiKey;
+
+        // 🌐 API URL (dùng bản mới Gemini 2.0)
         private readonly string _geminiUrl =
-    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent";
+            "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent";
 
-        // 💡 DANH SÁCH TỪ KHÓA ĐỂ KÍCH HOẠT TÌM KIẾM SẢN PHẨM (Không phải Stopwords)
-        private readonly List<string> _productTriggers = new List<string>
+        // 🛍️ Từ khóa kích hoạt tìm sản phẩm
+        private readonly List<string> _productTriggers = new()
         {
-            "sản phẩm", "mua", "giá", "điện tử", "điện thoại", "laptop",
-            "tv", "máy tính", "tai nghe", "bàn phím", "chuột", "tìm", "cần"
+            "sản phẩm", "mua", "giá", "bán", "điện thoại", "laptop", "tai nghe", "phụ kiện",
+            "tivi", "máy tính", "chuột", "bàn phím", "gaming", "macbook", "iphone", "android"
         };
 
-        // 🛑 DANH SÁCH TỪ DỪNG (STOPWORDS) PHỔ BIẾN TIẾNG VIỆT
-        // Dùng để làm sạch chuỗi tìm kiếm trước khi gửi xuống database
-        private readonly HashSet<string> _vietnameseStopwords = new HashSet<string>
+        // 📦 [NÂNG CẤP] Từ khóa kích hoạt hỏi tồn kho/số lượng
+        private readonly List<string> _inventoryTriggers = new()
         {
-            "tôi", "muốn", "cần", "một", "chiếc", "cái", "nào", "gì", "nhất",
-            "và", "là", "tìm", "kiếm", "về", "loại", "với", "cho", "xin", "làm",
-            "có", "hay", "được", "rồi", "nữa", "những"
+            "còn bao nhiêu", "số lượng", "hết hàng", "bao nhiêu", "hiện có"
         };
 
+        // 🏪 Từ khóa kích hoạt giới thiệu shop
+        private readonly List<string> _introTriggers = new()
+        {
+            "shop", "cửa hàng", "giới thiệu", "bạn là ai", "ở đâu", "uy tín", "thông tin", "chính sách"
+        };
+
+        // 🧾 Mô tả shop có thể load từ DB hoặc config
+        private readonly string _shopIntro = @"
+Xin chào 👋! Mình là **Trợ lý ảo EcomBot**, đại diện cho cửa hàng **TechStore** 💎 
+🛒 *EcommerceX* chuyên cung cấp các sản phẩm **điện tử, laptop, điện thoại, phụ kiện chính hãng** với giá cực tốt. 
+⚡ Ưu điểm:
+- Bảo hành 12 tháng toàn quốc 
+- Giao hàng nhanh 2h nội thành 
+- Hỗ trợ trả góp 0% lãi suất 
+- CSKH tận tâm 24/7 
+
+Bạn có thể hỏi mình bất kỳ điều gì như:
+👉 “Shop có iPhone 15 không?”
+👉 “Laptop chơi game tầm 20 triệu có không?”
+👉 “Chính sách bảo hành thế nào?”
+";
+
+        // 🧩 System prompt để Gemini hiểu vai trò của AI
+        private readonly string _systemPrompt = @"
+Bạn là trợ lý ảo **EcomBot** của cửa hàng **TechStore**.
+Nhiệm vụ của bạn là:
+- **Tư vấn và bán hàng** cho các sản phẩm điện tử, laptop, điện thoại, phụ kiện.
+- Trả lời thân thiện, chuyên nghiệp, luôn xưng 'mình' hoặc 'EcomBot'.
+- Nếu người dùng hỏi các câu như 'Lọc theo giá' hay 'Samsung', hãy **khuyến khích họ dùng chức năng tìm kiếm sản phẩm** của shop (vì bạn chỉ là AI, bạn không có quyền truy cập trực tiếp vào cơ sở dữ liệu để lọc chuyên sâu).
+- Nếu người dùng hỏi ngoài phạm vi công nghệ/sản phẩm, hãy từ chối lịch sự.
+- Luôn khuyến khích truy cập website: https://ecommercex.vn
+";
 
         public ChatService(HttpClient httpClient, IChatQueries chatQueries, IConfiguration configuration, ILogger<ChatService> logger)
         {
@@ -42,7 +77,6 @@ namespace EntityHandler.Services
             _logger = logger;
 
             _geminiApiKey = configuration["Gemini:ApiKey"];
-
             if (string.IsNullOrEmpty(_geminiApiKey))
             {
                 _logger.LogCritical("❌ Cấu hình lỗi: Gemini API key bị thiếu trong appsettings.json.");
@@ -50,79 +84,83 @@ namespace EntityHandler.Services
             }
         }
 
-        /// <summary>
-        /// Loại bỏ các từ dừng và chỉ giữ lại từ khóa quan trọng để tìm kiếm database.
-        /// </summary>
-        private string ExtractKeywords(string message)
-        {
-            // Tách tin nhắn thành các từ
-            var words = message.Split(new[] { ' ', ',', '.', '?', '!' }, StringSplitOptions.RemoveEmptyEntries);
-
-            // Loại bỏ stopwords và nối lại thành chuỗi tìm kiếm
-            var relevantWords = words
-                .Where(word => !_vietnameseStopwords.Contains(word.ToLowerInvariant()))
-                .ToList();
-
-            // Nếu không còn từ nào, dùng lại toàn bộ tin nhắn gốc (đề phòng trường hợp lỗi)
-            if (!relevantWords.Any())
-            {
-                return message;
-            }
-
-            // Trả về chuỗi mới, ví dụ: "mua điện thoại samsung" -> "điện thoại samsung"
-            return string.Join(" ", relevantWords);
-        }
-
         public async Task<ChatResponseDto> ProcessUserMessageAsync(ChatRequestDto request, Guid userId)
         {
             if (string.IsNullOrWhiteSpace(request.Message))
-            {
-                return new ChatResponseDto { BotMessage = "Xin vui lòng nhập tin nhắn." };
-            }
+                return new ChatResponseDto { BotMessage = "Hãy nhập điều bạn muốn hỏi nhé 😊" };
 
             string message = request.Message.Trim().ToLowerInvariant();
 
-            // ===================== 🛍️ PHÂN LOẠI VÀ TÌM KIẾM SẢN PHẨM =====================
-
-            bool isProductSearch = _productTriggers.Any(k => message.Contains(k));
-
-            if (isProductSearch)
+            // ===================== 🏪 GIỚI THIỆU SHOP =====================
+            if (_introTriggers.Any(k => message.Contains(k)))
             {
-                _logger.LogInformation("🚀 Kích hoạt logic tìm kiếm sản phẩm cho tin nhắn: {Message}", request.Message);
+                _logger.LogInformation("✨ Người dùng hỏi về shop → trả lời giới thiệu.");
+                return new ChatResponseDto { BotMessage = _shopIntro };
+            }
 
-                // ✅ SỬ DỤNG HÀM MỚI ĐỂ LÀM SẠCH TỪ KHÓA
-                string cleanedKeyword = ExtractKeywords(message);
+            // ===================== 📦 KIỂM TRA TỒN KHO =====================
+            if (_inventoryTriggers.Any(k => message.Contains(k)))
+            {
+                _logger.LogInformation("📦 Kích hoạt logic kiểm tra tồn kho cho: {Message}", message);
 
-                _logger.LogDebug("Từ khóa đã làm sạch: {Keyword}", cleanedKeyword);
+                // Loại bỏ các trigger để lấy từ khóa tìm kiếm
+                string searchKeyword = request.Message.Trim();
+                _inventoryTriggers.ForEach(t => searchKeyword = searchKeyword.Replace(t, "", StringComparison.OrdinalIgnoreCase));
+                searchKeyword = searchKeyword.Trim();
 
-                // Dùng từ khóa đã làm sạch để tìm kiếm database
-                var products = await _chatQueries.SearchProductsAsync(cleanedKeyword);
+                if (string.IsNullOrWhiteSpace(searchKeyword))
+                {
+                    return new ChatResponseDto { BotMessage = "Bạn muốn mình kiểm tra số lượng của sản phẩm nào nhỉ? 💬" };
+                }
+
+                int count = await _chatQueries.GetProductCountAsync(searchKeyword);
+
+                if (count > 0)
+                {
+                    string reply = $"Chào bạn! Hiện tại, mình tìm thấy **{count}** loại sản phẩm phù hợp với từ khóa '{searchKeyword}' trong kho đó! 🎉 Bạn có muốn mình liệt kê danh sách không?";
+                    return new ChatResponseDto { BotMessage = reply };
+                }
+
+                return new ChatResponseDto
+                {
+                    BotMessage = $"Mình không tìm thấy sản phẩm nào liên quan đến '{searchKeyword}' trong kho 😢. Bạn thử mô tả tên sản phẩm chi tiết hơn nhé!"
+                };
+            }
+
+            // ===================== 🛍️ TÌM KIẾM SẢN PHẨM =====================
+            if (_productTriggers.Any(k => message.Contains(k)))
+            {
+                _logger.LogInformation("🛒 Kích hoạt logic tìm sản phẩm cho: {Message}", message);
+                var products = await _chatQueries.SearchProductsAsync(request.Message);
 
                 if (products != null && products.Any())
                 {
-                    // Logic trả về danh sách sản phẩm
-                    var formattedList = string.Join("\n",
-                        products.Select(p => $"- {p.Name} ({p.Price:N0}₫)"));
+                    var formatted = string.Join("\n",
+                        products.Take(5).Select(p => $"- {p.Name} ({p.Price:N0}₫)"));
+
+                    string responseText =
+                        $"Mình tìm thấy {products.Count} sản phẩm phù hợp với yêu cầu của bạn 👇\n{formatted}\n\n" +
+                        "Bạn muốn mình lọc theo thương hiệu hay mức giá không? Hoặc bạn có thể truy cập website để xem chi tiết hơn: https://ecommercex.vn 💬";
 
                     return new ChatResponseDto
                     {
-                        BotMessage = $"Mình tìm thấy {products.Count} sản phẩm liên quan:\n{formattedList}",
+                        BotMessage = responseText,
                         Products = products
                     };
                 }
 
                 return new ChatResponseDto
                 {
-                    BotMessage = "Xin lỗi, mình không tìm thấy sản phẩm nào phù hợp với yêu cầu của bạn."
+                    BotMessage = "Mình không tìm thấy sản phẩm nào phù hợp 😢. Bạn có thể thử mô tả chi tiết hơn không?"
                 };
             }
 
-            // ===================== 💬 XỬ LÝ BẰNG GEMINI API =====================
-
+            // ===================== 💬 GỌI GEMINI CHO HỎI ĐÁP KHÁC =====================
             var body = new
             {
                 contents = new[]
                 {
+                    new { role = "system", parts = new[] { new { text = _systemPrompt } } },
                     new { role = "user", parts = new[] { new { text = request.Message } } }
                 }
             };
@@ -137,45 +175,32 @@ namespace EntityHandler.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("❌ Gemini API Error: Status {StatusCode}. Response: {Response}", response.StatusCode, responseText);
+                    _logger.LogError("❌ Gemini API Error: {StatusCode} - {Response}", response.StatusCode, responseText);
                     return new ChatResponseDto
                     {
-                        BotMessage = $"Lỗi từ Gemini API ({response.StatusCode}). Vui lòng kiểm tra API Key và Quota."
+                        BotMessage = "Xin lỗi 😔, hệ thống đang bận xử lý. Bạn thử lại sau nhé!"
                     };
                 }
 
                 using var doc = JsonDocument.Parse(responseText);
                 var root = doc.RootElement;
 
-                // Logic phân tích JSON an toàn... (Giữ nguyên như đã sửa lần trước)
+                // Xử lý Parse JSON Response từ Gemini
+                string reply = root
+                    .GetProperty("candidates")[0]
+                    .GetProperty("content")
+                    .GetProperty("parts")[0]
+                    .GetProperty("text").GetString() ?? "Xin lỗi, mình chưa hiểu rõ lắm 😅.";
 
-                if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
-                {
-                    var firstCandidate = candidates[0];
-
-                    if (firstCandidate.TryGetProperty("finishReason", out var finishReason) &&
-                        finishReason.GetString() == "SAFETY")
-                    {
-                        return new ChatResponseDto { BotMessage = "Xin lỗi, câu hỏi của bạn không vượt qua được bộ lọc an toàn của AI." };
-                    }
-
-                    if (firstCandidate.TryGetProperty("content", out var content) &&
-                        content.TryGetProperty("parts", out var parts) &&
-                        parts.GetArrayLength() > 0 &&
-                        parts[0].TryGetProperty("text", out var textElement))
-                    {
-                        var reply = textElement.GetString();
-                        return new ChatResponseDto { BotMessage = reply };
-                    }
-                }
-
-                return new ChatResponseDto { BotMessage = "Xin lỗi, tôi gặp sự cố khi xử lý câu trả lời." };
-
+                return new ChatResponseDto { BotMessage = reply };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "🚨 Lỗi không xác định khi xử lý tin nhắn.");
-                return new ChatResponseDto { BotMessage = "Xin lỗi, hệ thống AI đang bận (Lỗi mạng hoặc lỗi nội bộ không xác định). Vui lòng thử lại sau." };
+                _logger.LogError(ex, "🚨 Lỗi khi gọi Gemini API.");
+                return new ChatResponseDto
+                {
+                    BotMessage = "Hệ thống đang bận chút xíu 😅. Bạn vui lòng thử lại sau nhé!"
+                };
             }
         }
     }

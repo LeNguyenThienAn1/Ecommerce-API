@@ -58,19 +58,36 @@ namespace Api.Controllers
         [HttpPost("send")]
         public async Task<IActionResult> Send([FromBody] CreateChatMessageDto dto)
         {
-            var senderId = GetUserId();
-            var result = await _chatService.SendMessageAsync(senderId, dto);
+            try
+            {
+                if (dto == null)
+                    return BadRequest(new { error = "Request body is null." });
 
-            // push realtime to receiver via SignalR group
-            await _hub.Clients.Group($"user-{dto.ReceiverId}")
-                .SendAsync("ReceiveMessage", result);
+                if (dto.ReceiverId == Guid.Empty)
+                    return BadRequest(new { error = "ReceiverId cannot be empty." });
 
-            // optionally notify sender too
-            await _hub.Clients.Group($"user-{senderId}")
-                .SendAsync("MessageSent", result);
+                var senderId = GetUserId();
 
-            return Ok(result);
+                // G?i service ?ã check receiver t?n t?i
+                var result = await _chatService.SendMessageAsync(senderId, dto);
+
+                // push realtime to receiver via SignalR group
+                await _hub.Clients.Group($"user-{dto.ReceiverId}")
+                    .SendAsync("ReceiveMessage", result);
+
+                // optionally notify sender too
+                await _hub.Clients.Group($"user-{senderId}")
+                    .SendAsync("MessageSent", result);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Tr? v? l?i rõ ràng, không crash server
+                return BadRequest(new { error = ex.Message });
+            }
         }
+
 
         [HttpPost("mark-read/{messageId}")]
         public async Task<IActionResult> MarkAsRead(Guid messageId)

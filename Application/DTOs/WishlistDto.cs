@@ -1,15 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.DTOs
 {
     public class WishlistDto : BaseDto
     {
-        public int UserId { get; set; }
-        public int ProductId { get; set; }
-        public string ProductName { get; set; }
+        public Guid UserId { get; set; }
+        public Guid ProductId { get; set; }
+
+        public string ProductName { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string ProductDescription { get; set; } = string.Empty;
     }
 }

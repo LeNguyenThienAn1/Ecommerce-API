@@ -11,7 +11,7 @@ namespace Infrastructure
         public Guid Id { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime UpdateAt { get; set; } = DateTime.UtcNow;
-        public string? CreateBy { get; set; } = string.Empty;
-        public string? UpdateBy { get; set; } = string.Empty;
+        public Guid CreateBy { get; set; } 
+        public Guid UpdateBy { get; set; } 
     }
 }
