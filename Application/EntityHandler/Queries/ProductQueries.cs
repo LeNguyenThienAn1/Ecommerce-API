@@ -19,7 +19,7 @@ namespace Infrastructure.Queries
         }
 
         /// <summary>
-        /// Lấy tất cả sản phẩm (có phân trang + lọc)
+        /// Lấy tất cả sản phẩm (có phân trang + lọc + sắp xếp)
         /// </summary>
         public async Task<PagedResult<ProductDto>> GetAllProductsAsync(ProductPagingRequestDto request)
         {
@@ -29,40 +29,54 @@ namespace Infrastructure.Queries
                 .Where(p => p.Status == ProductStatus.Available)
                 .AsQueryable();
 
-            // --- Search ---
+            // 🔍 --- Search ---
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
             {
                 string search = request.SearchTerm.Trim().ToLower();
                 query = query.Where(p => p.Name.ToLower().Contains(search));
             }
 
-           // ---filter by brand ---
-            if (request.BrandIds != null && request.BrandIds.Any())
+            // 🏭 --- Filter by Brand ---
+            if (request.BrandIds != null && request.BrandIds.Any(id => id != Guid.Empty))
             {
                 query = query.Where(p => request.BrandIds.Contains(p.BrandId));
             }
 
-           // ---filter by category ---
-            if (request.CategoryIds != null && request.CategoryIds.Any())
+            // 🏷️ --- Filter by Category ---
+            if (request.CategoryIds != null && request.CategoryIds.Any(id => id != Guid.Empty))
             {
                 query = query.Where(p => request.CategoryIds.Contains(p.CategoryId));
             }
 
-            // --- Tổng số bản ghi ---
+            // 🔢 --- Tổng số bản ghi ---
             int totalCount = await query.CountAsync();
 
-            // --- Sort ---
+            // ⏱️ --- Sort ---
             if (!string.IsNullOrWhiteSpace(request.SortBy))
             {
                 switch (request.SortBy.ToLower())
                 {
-                    case "name": query = query.OrderBy(p => p.Name); break;
-                    case "name_desc": query = query.OrderByDescending(p => p.Name); break;
-                    case "price": query = query.OrderBy(p => p.Price); break;
-                    case "price_desc": query = query.OrderByDescending(p => p.Price); break;
-                    case "createdat": query = query.OrderBy(p => p.CreateAt); break;
-                    case "createdat_desc": query = query.OrderByDescending(p => p.CreateAt); break;
-                    default: query = query.OrderBy(p => p.Name); break;
+                    case "name":
+                        query = query.OrderBy(p => p.Name);
+                        break;
+                    case "name_desc":
+                        query = query.OrderByDescending(p => p.Name);
+                        break;
+                    case "price":
+                        query = query.OrderBy(p => p.Price);
+                        break;
+                    case "price_desc":
+                        query = query.OrderByDescending(p => p.Price);
+                        break;
+                    case "createdat":
+                        query = query.OrderBy(p => p.CreateAt);
+                        break;
+                    case "createdat_desc":
+                        query = query.OrderByDescending(p => p.CreateAt);
+                        break;
+                    default:
+                        query = query.OrderBy(p => p.Name);
+                        break;
                 }
             }
             else
@@ -70,7 +84,7 @@ namespace Infrastructure.Queries
                 query = query.OrderBy(p => p.Name);
             }
 
-            // --- Paging ---
+            // 📄 --- Paging ---
             int pageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
             int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
             int skip = (pageNumber - 1) * pageSize;
@@ -91,9 +105,6 @@ namespace Infrastructure.Queries
                     SalePercent = p.SalePercent,
                     CategoryId = p.CategoryId,
                     BrandId = p.BrandId,
-
-                     //  CategoryId = Guid.Empty,
-                    //BrandId = Guid.Empty,
                     CreateAt = p.CreateAt,
                     Detail = p.Detail
                 })
@@ -107,11 +118,11 @@ namespace Infrastructure.Queries
         }
 
         /// <summary>
-        /// Lấy tất cả brand
+        /// Lấy tất cả Brand
         /// </summary>
         public async Task<List<BrandDto>> GetAllBrandAsync()
         {
-            var brands = await _context.Brands
+            return await _context.Brands
                 .AsNoTracking()
                 .Select(b => new BrandDto
                 {
@@ -119,8 +130,6 @@ namespace Infrastructure.Queries
                     Name = b.Name
                 })
                 .ToListAsync();
-
-            return brands;
         }
 
         /// <summary>
