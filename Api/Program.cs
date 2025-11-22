@@ -79,6 +79,11 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandQueries, BrandQueries>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 
+// Nếu dùng .NET 6+ (file Program.cs)
+builder.Services.AddScoped<IWishlistService, WishlistService>();
+builder.Services.AddScoped<IWishlistQueries, WishlistQueries>();
+
+
 // ======================= Real-Time Chat =======================
 builder.Services.AddScoped<IRealTimeChatService, RealTimeChatService>();
 builder.Services.AddScoped<IChatMessageQueries, ChatMessageQueries>();

@@ -75,6 +75,10 @@ namespace Application.EntityHandler.Services.Implementations
             if (user == null)
                 throw new Exception("Tài khoản không tồn tại.");
 
+            // ⚠️ Kiểm tra nếu tài khoản bị khóa
+            if (!user.IsActive)
+                throw new Exception("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ.");
+
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
                 throw new Exception("Sai mật khẩu.");
 
@@ -85,6 +89,7 @@ namespace Application.EntityHandler.Services.Implementations
 
             return tokens;
         }
+
 
         // --------------------- ĐĂNG NHẬP ADMIN ---------------------
         public async Task<AuthResult> LoginAdminAsync(LoginRequest request)

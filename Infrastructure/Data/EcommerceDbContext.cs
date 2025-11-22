@@ -18,7 +18,7 @@ namespace Infrastructure
         public DbSet<OrderEntity> Orders { get; set; }
         public DbSet<OrderDetailEntity> OrderDetails { get; set; }
         public DbSet<UserEntity> Users { get; set; }
-      //public DbSet<WishlistEntity> Wishlists { get; set; }
+        public DbSet<WishlistEntity> Wishlists { get; set; }
         public DbSet<ChatMessageEntity> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -187,23 +187,21 @@ namespace Infrastructure
                       .HasMaxLength(500);
             });
             // ========== WISHLIST ==========
-            //modelBuilder.Entity<WishlistEntity>(entity =>
-            //{
-            //    entity.ToTable("Wishlists");
-            //    entity.HasKey(w => w.Id);
+            modelBuilder.Entity<WishlistEntity>(entity =>
+            {
+                entity.ToTable("Wishlists");
+                entity.HasKey(w => new { w.UserId, w.ProductId });
 
-            //    entity.HasOne(w => w.User)
-            //        .WithMany() // hoặc .WithMany(u => u.Wishlists) nếu bạn có navigation trong UserEntity
-            //        .HasForeignKey(w => w.UserId)
-            //        .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(w => w.User)
+                    .WithMany(u => u.Wishlists)
+                    .HasForeignKey(w => w.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            //    entity.HasOne(w => w.Product)
-            //        .WithMany() // hoặc .WithMany(p => p.Wishlists)
-            //        .HasForeignKey(w => w.ProductId)
-            //        .OnDelete(DeleteBehavior.Cascade);
-            //});
-
-
+                entity.HasOne(w => w.Product)
+                    .WithMany(p => p.Wishlists)
+                    .HasForeignKey(w => w.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

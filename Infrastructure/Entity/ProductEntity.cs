@@ -1,4 +1,5 @@
 ﻿using Infrastructure.Entity;
+using System.Collections.Generic;
 
 namespace Infrastructure;
 
@@ -20,6 +21,9 @@ public class ProductEntity : BaseEntity
     public ProductDetail Detail { get; set; }
     public ProductStatus Status { get; set; }
     public Guid BoughtBy { get; set; } = Guid.Empty; // nếu khác Guid.Empty thì sản phẩm đã bán
+
+    // Navigation property
+    public ICollection<WishlistEntity> Wishlists { get; set; } = new List<WishlistEntity>();
 }
 public class ProductDetail
 {

@@ -65,12 +65,16 @@ namespace Api.Controllers
         }
 
         // 🟨 PUT: /api/users/{id}
-        [HttpPost(":update")]
-        public async Task<IActionResult> Update([FromBody] UserDto userDto)
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UserDto userDto)
         {
+            if (id != userDto.Id)
+                return BadRequest("ID trong URL và body không trùng nhau.");
+
             var updated = await _userService.UpdateUserAsync(userDto);
             if (updated == null)
                 return NotFound($"Không tìm thấy người dùng với ID: {userDto.Id}");
+
             return Ok(updated);
         }
 
@@ -78,10 +82,18 @@ namespace Api.Controllers
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var success = await _userService.DeleteUserAsync(id);
-            if (!success)
-                return NotFound($"Không tìm thấy người dùng với ID: {id}");
-            return NoContent();
+            try
+            {
+                var success = await _userService.DeleteUserAsync(id);
+                if (!success)
+                    return NotFound($"Không tìm thấy người dùng với ID: {id}");
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi xóa user: {ex.Message}");
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xóa user." });
+            }
         }
 
         // 🟧 PATCH: /api/users/{id}/status?isActive=true
@@ -91,8 +103,8 @@ namespace Api.Controllers
             var success = await _userService.ChangeUserStatusAsync(id, isActive);
             if (!success)
                 return NotFound($"Không tìm thấy người dùng với ID: {id}");
+
             return Ok(new { message = $"Đã {(isActive ? "kích hoạt" : "vô hiệu hóa")} người dùng." });
         }
     }
 }
-

@@ -1,15 +1,14 @@
-﻿//using System;
-//using Infrastructure.Entity;
+﻿using System;
 
-//namespace Infrastructure.Entity
-//{
-//    public class WishlistEntity : BaseEntity
-//    {
-//        public Guid UserId { get; set; }
-//        public Guid ProductId { get; set; }
+namespace Infrastructure.Entity
+{
+    public class WishlistEntity
+    {
+        public Guid UserId { get; set; }
+        public Guid ProductId { get; set; }
 
-//        // Quan hệ rõ ràng
-//        public virtual UserEntity User { get; set; }
-//        public virtual ProductEntity Product { get; set; }
-//    }
-//}
+        // Navigation properties
+        public UserEntity User { get; set; }
+        public ProductEntity Product { get; set; }
+    }
+}

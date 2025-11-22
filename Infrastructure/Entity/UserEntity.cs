@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Infrastructure.Entity;
+using System.Collections.Generic;
 
 namespace Infrastructure
 {
@@ -6,7 +7,7 @@ namespace Infrastructure
     {
         public string Name { get; set; } = string.Empty;
 
-        public string? Email { get; set; } 
+        public string? Email { get; set; }
 
         public string Password { get; set; } = string.Empty;
 
@@ -23,5 +24,8 @@ namespace Infrastructure
         public UserType Role { get; set; } // Admin, Customer, etc.
 
         public string RefreshToken { get; set; } = string.Empty;
+
+        // Navigation property
+        public ICollection<WishlistEntity> Wishlists { get; set; } = new List<WishlistEntity>();
     }
 }
