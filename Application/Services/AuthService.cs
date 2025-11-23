@@ -140,6 +140,28 @@ namespace Application.EntityHandler.Services.Implementations
             }
         }
 
+        // --------------------- ĐỔI MẬT KHẨU ---------------------
+        public async Task<string> ChangePasswordAsync(ChangePasswordRequest request, Guid userId)
+        {
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null)
+                throw new Exception("Người dùng không tồn tại.");
+
+            if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.Password))
+                throw new Exception("Mật khẩu cũ không chính xác.");
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword != request.ConfirmNewPassword)
+                throw new Exception("Mật khẩu mới không hợp lệ hoặc không khớp.");
+
+            if (request.OldPassword == request.NewPassword)
+                throw new Exception("Mật khẩu mới không được trùng với mật khẩu cũ.");
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            await _db.SaveChangesAsync();
+
+            return "Đổi mật khẩu thành công.";
+        }
+
         // --------------------- HÀM SINH TOKEN ---------------------
         private AuthResult GenerateJwtTokens(UserEntity user)
         {

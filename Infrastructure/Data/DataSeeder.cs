@@ -10,18 +10,15 @@ namespace Infrastructure.Data
     {
         public static async Task SeedAdminUserAsync(EcommerceDbContext context)
         {
-            // Kiểm tra xem đã có admin nào chưa
             if (!await context.Users.AnyAsync(u => u.Role == UserType.Admin))
             {
-                // Nếu chưa có, tạo một admin mới
                 var adminUser = new UserEntity
                 {
                     Id = Guid.NewGuid(),
                     Name = "Admin",
                     Email = "admin@example.com",
-                    PhoneNumber = "+84987654321", // Số điện thoại để đăng nhập
+                    PhoneNumber = "+84987654321",
                     Password = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                    // Mật khẩu đã được mã hóa
                     Role = UserType.Admin,
                     IsActive = true,
                     Address = "Quản trị viên",

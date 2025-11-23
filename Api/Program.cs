@@ -83,6 +83,10 @@ builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<IWishlistQueries, WishlistQueries>();
 
+// Product Comments
+builder.Services.AddScoped<IProductCommentService, ProductCommentService>();
+builder.Services.AddScoped<IProductCommentQueries, ProductCommentQueries>();
+
 
 // ======================= Real-Time Chat =======================
 builder.Services.AddScoped<IRealTimeChatService, RealTimeChatService>();

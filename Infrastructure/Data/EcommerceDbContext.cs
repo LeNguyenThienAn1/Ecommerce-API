@@ -20,6 +20,7 @@ namespace Infrastructure
         public DbSet<UserEntity> Users { get; set; }
         public DbSet<WishlistEntity> Wishlists { get; set; }
         public DbSet<ChatMessageEntity> ChatMessages { get; set; }
+        public DbSet<ProductCommentEntity> ProductComments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -200,6 +201,23 @@ namespace Infrastructure
                 entity.HasOne(w => w.Product)
                     .WithMany(p => p.Wishlists)
                     .HasForeignKey(w => w.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ========== PRODUCT COMMENT ==========
+            modelBuilder.Entity<ProductCommentEntity>(entity =>
+            {
+                entity.ToTable("ProductComments");
+                entity.HasKey(c => c.Id);
+
+                entity.HasOne(c => c.User)
+                    .WithMany(u => u.ProductComments)
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.Product)
+                    .WithMany(p => p.ProductComments)
+                    .HasForeignKey(c => c.ProductId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }

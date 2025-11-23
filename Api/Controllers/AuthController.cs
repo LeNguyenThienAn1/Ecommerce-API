@@ -1,6 +1,9 @@
 ﻿using Application.EntityHandler.Services;
 using Application.EntityHandler.Services.Implementations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using static Application.DTOs.AuthDto;
 
 namespace Api.Controllers
@@ -36,6 +39,21 @@ namespace Api.Controllers
 
             var token = await _authService.LoginAsync(req);
             return Ok(token);
+        }
+
+        // ---------------- CHANGE PASSWORD ----------------
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+        {
+            var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+
+            var result = await _authService.ChangePasswordAsync(req, userId);
+            return Ok(new { message = result });
         }
 
         // ---------------- ADMIN LOGIN ----------------

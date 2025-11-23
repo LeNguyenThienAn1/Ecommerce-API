@@ -2,6 +2,7 @@
 using Application.Interfaces.Queries;
 using Application.Interfaces.Services;
 using Infrastructure;
+using Infrastructure.Entity;
 
 namespace Application.Services
 {
@@ -76,8 +77,26 @@ namespace Application.Services
                 IsFeatured = entity.IsFeatured,
                 FeaturedType = entity.FeaturedType,
                 SalePercent = entity.SalePercent,
-              //  BrandId = entity.BrandId,
-             //   CategoryId = entity.CategoryId,
+                BrandId = entity.BrandId,
+                CategoryId = entity.CategoryId,
+
+                // 🛑 SỬA ĐỔI: Ánh xạ Category và Brand có chọn lọc để ngắt chu kỳ
+                // Chúng ta chỉ lấy Id và Name, bỏ qua các thuộc tính Navigation (List<Product>)
+
+                Brand = entity.Brand != null ? new BrandEntity
+                {
+                    Id = entity.Brand.Id,
+                    Name = entity.Brand.Name
+                    // KHÔNG ÁNH XẠ List<ProductEntity> Products
+                } : null,
+
+                Category = entity.Category != null ? new CategoryEntity
+                {
+                    Id = entity.Category.Id,
+                    Name = entity.Category.Name
+                    // KHÔNG ÁNH XẠ List<ProductEntity> Products
+                } : null,
+
                 Detail = entity.Detail,
                 CreateAt = entity.CreateAt
             };

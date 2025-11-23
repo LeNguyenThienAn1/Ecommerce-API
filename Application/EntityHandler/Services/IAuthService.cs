@@ -10,5 +10,6 @@ namespace Application.EntityHandler.Services
         Task<AuthResult> LoginAdminAsync(LoginRequest request);
         Task<AuthResult> RefreshTokenAsync(RefreshTokenRequest request);
         Task LogoutAsync(LogoutRequest request);
+        Task<string> ChangePasswordAsync(ChangePasswordRequest request, Guid userId);
     }
 }

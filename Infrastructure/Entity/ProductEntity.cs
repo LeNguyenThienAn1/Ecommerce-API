@@ -24,6 +24,7 @@ public class ProductEntity : BaseEntity
 
     // Navigation property
     public ICollection<WishlistEntity> Wishlists { get; set; } = new List<WishlistEntity>();
+    public ICollection<ProductCommentEntity> ProductComments { get; set; } = new List<ProductCommentEntity>();
 }
 public class ProductDetail
 {

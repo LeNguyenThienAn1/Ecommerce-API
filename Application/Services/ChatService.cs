@@ -20,54 +20,69 @@ namespace EntityHandler.Services
         private readonly ILogger<ChatService> _logger;
         private readonly string _geminiApiKey;
 
-        // 🌐 API URL (dùng bản mới Gemini 2.0)
+        // 🌐 API URL (using the new Gemini 2.0 version)
         private readonly string _geminiUrl =
             "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent";
 
-        // 🛍️ Từ khóa kích hoạt tìm sản phẩm
+        // 🛍️ Keywords to trigger product search
         private readonly List<string> _productTriggers = new()
         {
-            "sản phẩm", "mua", "giá", "bán", "điện thoại", "laptop", "tai nghe", "phụ kiện",
-            "tivi", "máy tính", "chuột", "bàn phím", "gaming", "macbook", "iphone", "android"
+            // Core keywords
+            "product", "item", "goods", "merchandise", "model",
+            // Actions/Price
+            "buy", "purchase", "cost", "price", "sell", "discount", "promotion", "deal", "cheap", "expensive",
+            // Categories/Names
+            "phone", "mobile", "smartphone", "laptop", "pc", "computer", "headphone", "earphone", "accessory",
+            "tv", "television", "mouse", "keyboard", "webcam", "monitor", "speaker",
+            // Brands/Types
+            "gaming", "macbook", "iphone", "android", "samsung", "dell", "asus", "xiaomi", "oppo"
         };
 
-        // 📦 [NÂNG CẤP] Từ khóa kích hoạt hỏi tồn kho/số lượng
+        // 📦 [UPGRADE] Keywords to trigger inventory/stock check
         private readonly List<string> _inventoryTriggers = new()
         {
-            "còn bao nhiêu", "số lượng", "hết hàng", "bao nhiêu", "hiện có"
+            // Quantity/Availability
+            "how many left", "quantity", "number of", "count", "stock", "availability", "available", "is there", "do you have",
+            // Status
+            "out of stock", "sold out", "in stock", "currently available", "have any", "remaining"
         };
 
-        // 🏪 Từ khóa kích hoạt giới thiệu shop
+        // 🏪 Keywords to trigger shop introduction
         private readonly List<string> _introTriggers = new()
         {
-            "shop", "cửa hàng", "giới thiệu", "bạn là ai", "ở đâu", "uy tín", "thông tin", "chính sách"
+            // Shop/Identity
+            "shop", "store", "company", "business", "who are you", "what are you", "what is this",
+            // Location/Info
+            "where are you", "address", "location", "contact", "phone number", "hours", "open", "close",
+            // Trust/Policies
+            "reputable", "info", "information", "policy", "warranty", "guarantee", "return", "shipping", "delivery", "trust"
         };
 
-        // 🧾 Mô tả shop có thể load từ DB hoặc config
+        // 🧾 Shop description (can be loaded from DB or config)
         private readonly string _shopIntro = @"
-Xin chào 👋! Mình là **Trợ lý ảo EcomBot**, đại diện cho cửa hàng **TechStore** 💎 
-🛒 *EcommerceX* chuyên cung cấp các sản phẩm **điện tử, laptop, điện thoại, phụ kiện chính hãng** với giá cực tốt. 
-⚡ Ưu điểm:
-- Bảo hành 12 tháng toàn quốc 
-- Giao hàng nhanh 2h nội thành 
-- Hỗ trợ trả góp 0% lãi suất 
-- CSKH tận tâm 24/7 
+Hello 👋! I am **EcomBot**, the virtual assistant for **TechStore** 💎
+🛒 *EcommerceX* specializes in providing **genuine electronics, laptops, phones, and accessories** at great prices.
+⚡ Advantages:
+- 12-month nationwide warranty
+- 2-hour express delivery in the city
+- 0% installment plan support
+- Dedicated 24/7 customer service
 
-Bạn có thể hỏi mình bất kỳ điều gì như:
-👉 “Shop có iPhone 15 không?”
-👉 “Laptop chơi game tầm 20 triệu có không?”
-👉 “Chính sách bảo hành thế nào?”
+You can ask me anything, such as:
+👉 ""Does the shop have iPhone 15?""
+👉 ""Do you have a gaming laptop around 20 million?""
+👉 ""What is the warranty policy?""
 ";
 
-        // 🧩 System prompt để Gemini hiểu vai trò của AI
+        // 🧩 System prompt to help Gemini understand the AI's role
         private readonly string _systemPrompt = @"
-Bạn là trợ lý ảo **EcomBot** của cửa hàng **TechStore**.
-Nhiệm vụ của bạn là:
-- **Tư vấn và bán hàng** cho các sản phẩm điện tử, laptop, điện thoại, phụ kiện.
-- Trả lời thân thiện, chuyên nghiệp, luôn xưng 'mình' hoặc 'EcomBot'.
-- Nếu người dùng hỏi các câu như 'Lọc theo giá' hay 'Samsung', hãy **khuyến khích họ dùng chức năng tìm kiếm sản phẩm** của shop (vì bạn chỉ là AI, bạn không có quyền truy cập trực tiếp vào cơ sở dữ liệu để lọc chuyên sâu).
-- Nếu người dùng hỏi ngoài phạm vi công nghệ/sản phẩm, hãy từ chối lịch sự.
-- Luôn khuyến khích truy cập website: https://ecommercex.vn
+You are the virtual assistant **EcomBot** for the **TechStore** shop.
+Your mission is to:
+- **Consult and sell** electronics, laptops, phones, and accessories.
+- Reply in a friendly, professional manner, always referring to yourself as 'I' or 'EcomBot'.
+- If the user asks questions like 'Filter by price' or 'Samsung', you should **encourage them to use the shop's product search function** (because you are an AI, you do not have direct access to the database for advanced filtering).
+- If the user asks about topics outside the scope of technology/products, politely decline.
+- Always encourage visiting the website: https://ecommercex.vn
 ";
 
         public ChatService(HttpClient httpClient, IChatQueries chatQueries, IConfiguration configuration, ILogger<ChatService> logger)
@@ -79,7 +94,7 @@ Nhiệm vụ của bạn là:
             _geminiApiKey = configuration["Gemini:ApiKey"];
             if (string.IsNullOrEmpty(_geminiApiKey))
             {
-                _logger.LogCritical("❌ Cấu hình lỗi: Gemini API key bị thiếu trong appsettings.json.");
+                _logger.LogCritical("❌ Configuration error: Gemini API key is missing in appsettings.json.");
                 throw new Exception("Gemini API key is missing in appsettings.json");
             }
         }
@@ -87,50 +102,50 @@ Nhiệm vụ của bạn là:
         public async Task<ChatResponseDto> ProcessUserMessageAsync(ChatRequestDto request, Guid userId)
         {
             if (string.IsNullOrWhiteSpace(request.Message))
-                return new ChatResponseDto { BotMessage = "Hãy nhập điều bạn muốn hỏi nhé 😊" };
+                return new ChatResponseDto { BotMessage = "Please enter what you would like to ask 😊" };
 
             string message = request.Message.Trim().ToLowerInvariant();
 
-            // ===================== 🏪 GIỚI THIỆU SHOP =====================
+            // ===================== 🏪 SHOP INTRODUCTION =====================
             if (_introTriggers.Any(k => message.Contains(k)))
             {
-                _logger.LogInformation("✨ Người dùng hỏi về shop → trả lời giới thiệu.");
+                _logger.LogInformation("✨ User asks about the shop -> replying with introduction.");
                 return new ChatResponseDto { BotMessage = _shopIntro };
             }
 
-            // ===================== 📦 KIỂM TRA TỒN KHO =====================
+            // ===================== 📦 INVENTORY CHECK =====================
             if (_inventoryTriggers.Any(k => message.Contains(k)))
             {
-                _logger.LogInformation("📦 Kích hoạt logic kiểm tra tồn kho cho: {Message}", message);
+                _logger.LogInformation("📦 Triggering inventory check logic for: {Message}", message);
 
-                // Loại bỏ các trigger để lấy từ khóa tìm kiếm
+                // Remove triggers to get the search keyword
                 string searchKeyword = request.Message.Trim();
                 _inventoryTriggers.ForEach(t => searchKeyword = searchKeyword.Replace(t, "", StringComparison.OrdinalIgnoreCase));
                 searchKeyword = searchKeyword.Trim();
 
                 if (string.IsNullOrWhiteSpace(searchKeyword))
                 {
-                    return new ChatResponseDto { BotMessage = "Bạn muốn mình kiểm tra số lượng của sản phẩm nào nhỉ? 💬" };
+                    return new ChatResponseDto { BotMessage = "Which product would you like me to check the quantity for? 💬" };
                 }
 
                 int count = await _chatQueries.GetProductCountAsync(searchKeyword);
 
                 if (count > 0)
                 {
-                    string reply = $"Chào bạn! Hiện tại, mình tìm thấy **{count}** loại sản phẩm phù hợp với từ khóa '{searchKeyword}' trong kho đó! 🎉 Bạn có muốn mình liệt kê danh sách không?";
+                    string reply = $"Hello! Currently, I found **{count}** product types matching the keyword '{searchKeyword}' in stock! 🎉 Would you like me to list them?";
                     return new ChatResponseDto { BotMessage = reply };
                 }
 
                 return new ChatResponseDto
                 {
-                    BotMessage = $"Mình không tìm thấy sản phẩm nào liên quan đến '{searchKeyword}' trong kho 😢. Bạn thử mô tả tên sản phẩm chi tiết hơn nhé!"
+                    BotMessage = $"I couldn't find any products related to '{searchKeyword}' in stock 😢. Could you try describing the product name in more detail?"
                 };
             }
 
-            // ===================== 🛍️ TÌM KIẾM SẢN PHẨM =====================
+            // ===================== 🛍️ PRODUCT SEARCH =====================
             if (_productTriggers.Any(k => message.Contains(k)))
             {
-                _logger.LogInformation("🛒 Kích hoạt logic tìm sản phẩm cho: {Message}", message);
+                _logger.LogInformation("🛒 Triggering product search logic for: {Message}", message);
                 var products = await _chatQueries.SearchProductsAsync(request.Message);
 
                 if (products != null && products.Any())
@@ -139,8 +154,8 @@ Nhiệm vụ của bạn là:
                         products.Take(5).Select(p => $"- {p.Name} ({p.Price:N0}₫)"));
 
                     string responseText =
-                        $"Mình tìm thấy {products.Count} sản phẩm phù hợp với yêu cầu của bạn 👇\n{formatted}\n\n" +
-                        "Bạn muốn mình lọc theo thương hiệu hay mức giá không? Hoặc bạn có thể truy cập website để xem chi tiết hơn: https://ecommercex.vn 💬";
+                        $"I found {products.Count} products matching your request 👇\n{formatted}\n\n" +
+                        "Would you like me to filter by brand or price range? Or you can visit the website for more details: https://ecommercex.vn 💬";
 
                     return new ChatResponseDto
                     {
@@ -151,11 +166,11 @@ Nhiệm vụ của bạn là:
 
                 return new ChatResponseDto
                 {
-                    BotMessage = "Mình không tìm thấy sản phẩm nào phù hợp 😢. Bạn có thể thử mô tả chi tiết hơn không?"
+                    BotMessage = "I couldn't find any suitable products 😢. Could you try describing it in more detail?"
                 };
             }
 
-            // ===================== 💬 GỌI GEMINI CHO HỎI ĐÁP KHÁC =====================
+            // ===================== 💬 CALL GEMINI FOR OTHER QUERIES =====================
             var body = new
             {
                 contents = new[]
@@ -178,28 +193,28 @@ Nhiệm vụ của bạn là:
                     _logger.LogError("❌ Gemini API Error: {StatusCode} - {Response}", response.StatusCode, responseText);
                     return new ChatResponseDto
                     {
-                        BotMessage = "Xin lỗi 😔, hệ thống đang bận xử lý. Bạn thử lại sau nhé!"
+                        BotMessage = "I apologize 😔, the system is currently busy. Please try again later!"
                     };
                 }
 
                 using var doc = JsonDocument.Parse(responseText);
                 var root = doc.RootElement;
 
-                // Xử lý Parse JSON Response từ Gemini
+                // Process Parse JSON Response from Gemini
                 string reply = root
                     .GetProperty("candidates")[0]
                     .GetProperty("content")
                     .GetProperty("parts")[0]
-                    .GetProperty("text").GetString() ?? "Xin lỗi, mình chưa hiểu rõ lắm 😅.";
+                    .GetProperty("text").GetString() ?? "I'm sorry, I don't quite understand 😅.";
 
                 return new ChatResponseDto { BotMessage = reply };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "🚨 Lỗi khi gọi Gemini API.");
+                _logger.LogError(ex, "🚨 Error calling Gemini API.");
                 return new ChatResponseDto
                 {
-                    BotMessage = "Hệ thống đang bận chút xíu 😅. Bạn vui lòng thử lại sau nhé!"
+                    BotMessage = "The system is a little busy right now 😅. Please try again later!"
                 };
             }
         }
