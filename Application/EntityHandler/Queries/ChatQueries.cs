@@ -92,5 +92,96 @@ namespace EntityHandler.Queries
                     p.Category.Name.ToLower().Contains(term)
                 ));
         }
+
+        public async Task<List<ProductDto>> FindProductsByCriteriaAsync(string? keywords, string? category, string? brand, decimal? minPrice,
+            decimal? maxPrice, Infrastructure.ProductSortBy sortBy)
+        {
+            var query = _context.Products
+                .Include(p => p.Brand)
+                .Include(p => p.Category)
+                .AsNoTracking();
+
+            // Lọc theo từ khóa
+            if (!string.IsNullOrWhiteSpace(keywords))
+            {
+                var searchTerms = keywords.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                           .Select(t => t.Trim().ToLower())
+                                           .Where(t => t.Length >= 2)
+                                           .ToList();
+                if (searchTerms.Any())
+                {
+                    query = query.Where(p => searchTerms.Any(term =>
+                        p.Name.ToLower().Contains(term) ||
+                        p.Description.ToLower().Contains(term)
+                    ));
+                }
+            }
+
+            // Lọc theo danh mục
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                query = query.Where(p => p.Category.Name.ToLower().Contains(category.ToLower()));
+            }
+
+            // Lọc theo thương hiệu
+            if (!string.IsNullOrWhiteSpace(brand))
+            {
+                query = query.Where(p => p.Brand.Name.ToLower().Contains(brand.ToLower()));
+            }
+
+            // Lọc theo giá
+            if (minPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= minPrice.Value);
+            }
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= maxPrice.Value);
+            }
+
+            // Sắp xếp
+            IOrderedQueryable<Infrastructure.ProductEntity> orderedQuery;
+            switch (sortBy)
+            {
+                case Infrastructure.ProductSortBy.PriceAsc:
+                    orderedQuery = query.OrderBy(p => p.Price).ThenByDescending(p => p.CreateAt);
+                    break;
+                case Infrastructure.ProductSortBy.PriceDesc:
+                    orderedQuery = query.OrderByDescending(p => p.Price).ThenByDescending(p => p.CreateAt);
+                    break;
+                case Infrastructure.ProductSortBy.Newest:
+                    orderedQuery = query.OrderByDescending(p => p.CreateAt);
+                    break;
+                case Infrastructure.ProductSortBy.Relevance:
+                default:
+                    if (!string.IsNullOrWhiteSpace(keywords))
+                    {
+                        var normalizedKeyword = keywords.ToLower();
+                        orderedQuery = query.OrderByDescending(p => p.Name.ToLower().Contains(normalizedKeyword))
+                                            .ThenByDescending(p => p.Price);
+                    }
+                    else
+                    {
+                        // Mặc định là mới nhất nếu không có keyword cho độ liên quan
+                        orderedQuery = query.OrderByDescending(p => p.CreateAt);
+                    }
+                    break;
+            }
+
+            return await orderedQuery
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    ImageUrl = p.ImageUrl,
+                    SalePercent = p.SalePercent,
+                    Category = p.Category,
+                    Brand = p.Brand,
+                })
+                .Take(10)
+                .ToListAsync();
+        }
     }
 }   

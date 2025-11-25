@@ -108,5 +108,13 @@ namespace Infrastructure
         Available = 0,
         Sold = 1
     }
+
+    public enum ProductSortBy
+    {
+        Relevance = 0, // Độ liên quan
+        PriceAsc = 1, // Giá tăng dần
+        PriceDesc = 2, // Giá giảm dần
+        Newest = 3, // Mới nhất
+    }
 }
 
